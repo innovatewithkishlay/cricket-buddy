@@ -12,3 +12,9 @@ const firebaseConfig = {
   appId: "1:650052070673:web:9a7cf441fb7c607435f0b0",
   measurementId: "G-P2Z9RF71QF",
 };
+
+const app = initializeApp(firebaseConfig);
+
+export const auth = getAuth(app);
+auth.setPersistence(getReactNativePersistence(AsyncStorage));
+export const db = getFirestore(app);
