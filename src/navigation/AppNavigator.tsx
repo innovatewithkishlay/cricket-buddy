@@ -1,5 +1,4 @@
 import { createStackNavigator } from "@react-navigation/stack";
-import SignInScreen from "../screens/SignInScreen";
 import HomeScreen from "../screens/HomeScreen";
 
 export type RootStackParamList = {
