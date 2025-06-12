@@ -114,7 +114,6 @@ export default function AuthScreen({ navigation }: Props) {
       setError("Passwords don't match");
       return;
     }
-
     setLoading(true);
     try {
       if (isSignUp) {
@@ -163,7 +162,6 @@ export default function AuthScreen({ navigation }: Props) {
       style={styles.container}
     >
       <View style={styles.content}>
-        {/* Static Logo - No Animation */}
         <View style={styles.logoContainer}>
           <MaterialCommunityIcons
             name="cricket"
@@ -176,8 +174,6 @@ export default function AuthScreen({ navigation }: Props) {
           </Text>
           <Text style={styles.subtitle}>Your Ultimate Cricket Companion</Text>
         </View>
-
-        {/* Tab Container */}
         <View style={styles.tabContainer}>
           <TouchableOpacity
             style={styles.tabButton}
@@ -201,7 +197,6 @@ export default function AuthScreen({ navigation }: Props) {
               Email
             </Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.tabButton}
             onPress={() => {
@@ -224,7 +219,6 @@ export default function AuthScreen({ navigation }: Props) {
               Google
             </Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.tabButton}
             onPress={() => {
@@ -247,7 +241,6 @@ export default function AuthScreen({ navigation }: Props) {
               Phone
             </Text>
           </TouchableOpacity>
-
           <Animated.View
             style={[
               styles.tabIndicator,
@@ -255,8 +248,6 @@ export default function AuthScreen({ navigation }: Props) {
             ]}
           />
         </View>
-
-        {/* Auth Card */}
         <View style={styles.card}>
           {activeTab === "email" && (
             <View style={styles.form}>
@@ -279,9 +270,8 @@ export default function AuthScreen({ navigation }: Props) {
                   },
                 }}
                 textColor="#FFFFFF"
-                left={<TextInput.Icon icon="email" iconColor="#A0C8FF" />}
+                left={<TextInput.Icon icon="email" color="#A0C8FF" />}
               />
-
               <TextInput
                 label="Password"
                 value={password}
@@ -300,16 +290,15 @@ export default function AuthScreen({ navigation }: Props) {
                   },
                 }}
                 textColor="#FFFFFF"
-                left={<TextInput.Icon icon="lock" iconColor="#A0C8FF" />}
+                left={<TextInput.Icon icon="lock" color="#A0C8FF" />}
                 right={
                   <TextInput.Icon
                     icon={showPassword ? "eye-off" : "eye"}
-                    iconColor="#A0C8FF"
+                    color="#A0C8FF"
                     onPress={() => setShowPassword(!showPassword)}
                   />
                 }
               />
-
               {isSignUp && (
                 <TextInput
                   label="Confirm Password"
@@ -329,13 +318,11 @@ export default function AuthScreen({ navigation }: Props) {
                     },
                   }}
                   textColor="#FFFFFF"
-                  left={
-                    <TextInput.Icon icon="lock-check" iconColor="#A0C8FF" />
-                  }
+                  left={<TextInput.Icon icon="lock-check" color="#A0C8FF" />}
                   right={
                     <TextInput.Icon
                       icon={showConfirmPassword ? "eye-off" : "eye"}
-                      iconColor="#A0C8FF"
+                      color="#A0C8FF"
                       onPress={() =>
                         setShowConfirmPassword(!showConfirmPassword)
                       }
@@ -343,7 +330,6 @@ export default function AuthScreen({ navigation }: Props) {
                   }
                 />
               )}
-
               <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
                 <Button
                   mode="contained"
@@ -359,7 +345,6 @@ export default function AuthScreen({ navigation }: Props) {
               </Animated.View>
             </View>
           )}
-
           {activeTab === "google" && (
             <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
               <Button
@@ -377,7 +362,6 @@ export default function AuthScreen({ navigation }: Props) {
               </Button>
             </Animated.View>
           )}
-
           {activeTab === "phone" && (
             <View style={styles.form}>
               {!confirmResult ? (
@@ -402,9 +386,7 @@ export default function AuthScreen({ navigation }: Props) {
                     }}
                     textColor="#FFFFFF"
                     placeholderTextColor="#A0C8FF"
-                    left={
-                      <TextInput.Icon icon="cellphone" iconColor="#A0C8FF" />
-                    }
+                    left={<TextInput.Icon icon="cellphone" color="#A0C8FF" />}
                   />
                   <Animated.View
                     style={{ transform: [{ scale: buttonScale }] }}
@@ -442,7 +424,7 @@ export default function AuthScreen({ navigation }: Props) {
                       },
                     }}
                     textColor="#FFFFFF"
-                    left={<TextInput.Icon icon="numeric" iconColor="#A0C8FF" />}
+                    left={<TextInput.Icon icon="numeric" color="#A0C8FF" />}
                   />
                   <Animated.View
                     style={{ transform: [{ scale: buttonScale }] }}
@@ -464,8 +446,6 @@ export default function AuthScreen({ navigation }: Props) {
             </View>
           )}
         </View>
-
-        {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
             {isSignUp ? "Already have an account?" : "New to Cricket Buddy?"}
@@ -481,7 +461,6 @@ export default function AuthScreen({ navigation }: Props) {
             </Text>
           </TouchableOpacity>
         </View>
-
         <Snackbar
           visible={!!error}
           onDismiss={() => setError("")}
@@ -490,7 +469,6 @@ export default function AuthScreen({ navigation }: Props) {
         >
           {error}
         </Snackbar>
-
         {loading && (
           <View style={styles.loaderContainer}>
             <ActivityIndicator
