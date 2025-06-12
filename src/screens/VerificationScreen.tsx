@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { View, StyleSheet, Button, Text } from "react-native";
 import { auth } from "../firebase/firebase";
 import { sendEmailVerification } from "firebase/auth";
@@ -16,7 +16,7 @@ type Props = {
 
 export default function VerificationScreen({ route }: Props) {
   const [resendDisabled, setResendDisabled] = useState(false);
-  const email = route.params?.email || "";
+  const email = route.params.email;
 
   const handleResendVerification = async () => {
     setResendDisabled(true);
