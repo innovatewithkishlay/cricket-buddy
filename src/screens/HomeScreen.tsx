@@ -1,22 +1,35 @@
-import React from "react";
-import { View, StyleSheet, ScrollView, Image } from "react-native";
+import React, { useState } from "react";
+import { View, StyleSheet, ScrollView, Modal, Pressable } from "react-native";
 import { Text, Card, Button, FAB, useTheme, Avatar } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { auth } from "../firebase/firebase";
+import { signOut } from "firebase/auth";
 
 export default function HomeScreen() {
   const theme = useTheme();
+  const [profileVisible, setProfileVisible] = useState(false);
 
   const user = {
-    name: "Kishlay",
+    name: auth.currentUser?.displayName || "Kishlay sinha",
+    email: auth.currentUser?.email || "kishlay@example.com",
     avatar:
-      "https://ui-avatars.com/api/?name=Kishlay&background=0D8ABC&color=fff",
+      "https://ui-avatars.com/api/?name=" +
+      (auth.currentUser?.displayName || "Kishlay") +
+      "&background=0D8ABC&color=fff",
+  };
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    setProfileVisible(false);
   };
 
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Avatar.Image size={60} source={{ uri: user.avatar }} />
+          <Pressable onPress={() => setProfileVisible(true)}>
+            <Avatar.Image size={60} source={{ uri: user.avatar }} />
+          </Pressable>
           <View style={{ marginLeft: 16 }}>
             <Text variant="titleLarge" style={styles.greeting}>
               Welcome, {user.name}!
@@ -64,17 +77,6 @@ export default function HomeScreen() {
               </Text>
             </Card.Content>
           </Card>
-          <Card
-            style={[styles.card, { backgroundColor: "#f5f5ff" }]}
-            onPress={() => {}}
-          >
-            <Card.Content style={styles.cardContent}>
-              <Icon name="account-circle" size={36} color="#3f51b5" />
-              <Text variant="titleMedium" style={styles.cardText}>
-                My Profile
-              </Text>
-            </Card.Content>
-          </Card>
         </View>
 
         <View style={styles.statsSection}>
@@ -117,6 +119,41 @@ export default function HomeScreen() {
         onPress={() => {}}
         color="#fff"
       />
+
+      <Modal
+        visible={profileVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setProfileVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Avatar.Image
+              size={72}
+              source={{ uri: user.avatar }}
+              style={{ alignSelf: "center" }}
+            />
+            <Text style={styles.profileName}>{user.name}</Text>
+            <Text style={styles.profileEmail}>{user.email}</Text>
+            <Button
+              mode="contained"
+              style={styles.signOutButton}
+              onPress={handleSignOut}
+              icon="logout"
+              buttonColor="#f44336"
+              textColor="#fff"
+            >
+              Sign Out
+            </Button>
+            <Button
+              onPress={() => setProfileVisible(false)}
+              style={{ marginTop: 8 }}
+            >
+              Close
+            </Button>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -190,5 +227,41 @@ const styles = StyleSheet.create({
     backgroundColor: "#1976d2",
     borderRadius: 28,
     elevation: 6,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "85%",
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    padding: 28,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 10,
+  },
+  profileName: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginTop: 16,
+    textAlign: "center",
+  },
+  profileEmail: {
+    fontSize: 16,
+    color: "#555",
+    marginTop: 6,
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  signOutButton: {
+    marginTop: 12,
+    width: "100%",
+    borderRadius: 8,
   },
 });
