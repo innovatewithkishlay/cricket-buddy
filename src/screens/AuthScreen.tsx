@@ -6,7 +6,6 @@ import {
   Platform,
   TouchableOpacity,
   Animated,
-  Easing,
   Vibration,
 } from "react-native";
 import {
@@ -15,11 +14,11 @@ import {
   TextInput,
   Snackbar,
   ActivityIndicator,
-  useTheme,
 } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signInWithCredential,
   signInWithPhoneNumber,
   GoogleAuthProvider,
@@ -40,58 +39,33 @@ type Props = {
 };
 
 export default function AuthScreen({ navigation }: Props) {
-  const theme = useTheme();
   const [activeTab, setActiveTab] = useState<"email" | "google" | "phone">(
     "email"
   );
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [confirmResult, setConfirmResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [pulseAnim] = useState(new Animated.Value(1));
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const tabAnim = useRef(new Animated.Value(0)).current;
   const buttonScale = useRef(new Animated.Value(1)).current;
 
-  const clientId =
-    Platform.OS === "android"
-      ? ANDROID_CLIENT_ID
-      : Platform.OS === "ios"
-      ? IOS_CLIENT_ID
-      : EXPO_CLIENT_ID;
-
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId,
+  const clientId = Platform.select({
+    android: ANDROID_CLIENT_ID,
+    ios: IOS_CLIENT_ID,
+    default: EXPO_CLIENT_ID,
   });
 
-  // Animation effects
-  useEffect(() => {
-    const pulseAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.05,
-          duration: 1000,
-          easing: Easing.ease,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.ease,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    pulseAnimation.start();
-
-    return () => pulseAnimation.stop();
-  }, []);
+  const [request, response, promptAsync] = Google.useAuthRequest({ clientId });
 
   useEffect(() => {
-    // Animate tab indicator
     const tabIndex = activeTab === "email" ? 0 : activeTab === "google" ? 1 : 2;
     Animated.spring(tabAnim, {
       toValue: tabIndex,
@@ -108,10 +82,7 @@ export default function AuthScreen({ navigation }: Props) {
   }, [response]);
 
   const handlePress = (action: () => void) => {
-    // Provide haptic feedback
     Vibration.vibrate(5);
-
-    // Button press animation
     Animated.sequence([
       Animated.timing(buttonScale, {
         toValue: 0.95,
@@ -124,7 +95,6 @@ export default function AuthScreen({ navigation }: Props) {
         useNativeDriver: true,
       }),
     ]).start();
-
     action();
   };
 
@@ -139,12 +109,21 @@ export default function AuthScreen({ navigation }: Props) {
     }
   };
 
-  const handleEmailSignIn = async () => {
+  const handleEmailAuth = async () => {
+    if (isSignUp && password !== confirmPassword) {
+      setError("Passwords don't match");
+      return;
+    }
+
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      if (isSignUp) {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
     } catch (error: any) {
-      setError(error?.message || "Email sign-in failed");
+      setError(error?.message || `${isSignUp ? "Sign up" : "Sign in"} failed`);
     } finally {
       setLoading(false);
     }
@@ -173,10 +152,9 @@ export default function AuthScreen({ navigation }: Props) {
     }
   };
 
-  // Calculate animated position for tab indicator
   const tabIndicatorPosition = tabAnim.interpolate({
     inputRange: [0, 1, 2],
-    outputRange: [0, 120, 240], // Adjust based on your tab width
+    outputRange: [0, 120, 240],
   });
 
   return (
@@ -185,9 +163,8 @@ export default function AuthScreen({ navigation }: Props) {
       style={styles.container}
     >
       <View style={styles.content}>
-        <Animated.View
-          style={[styles.logoContainer, { transform: [{ scale: pulseAnim }] }]}
-        >
+        {/* Static Logo - No Animation */}
+        <View style={styles.logoContainer}>
           <MaterialCommunityIcons
             name="cricket"
             size={48}
@@ -198,8 +175,9 @@ export default function AuthScreen({ navigation }: Props) {
             Cricket Buddy
           </Text>
           <Text style={styles.subtitle}>Your Ultimate Cricket Companion</Text>
-        </Animated.View>
+        </View>
 
+        {/* Tab Container */}
         <View style={styles.tabContainer}>
           <TouchableOpacity
             style={styles.tabButton}
@@ -278,6 +256,7 @@ export default function AuthScreen({ navigation }: Props) {
           />
         </View>
 
+        {/* Auth Card */}
         <View style={styles.card}>
           {activeTab === "email" && (
             <View style={styles.form}>
@@ -292,41 +271,90 @@ export default function AuthScreen({ navigation }: Props) {
                 theme={{
                   colors: {
                     primary: "#FFD700",
-                    background: "rgba(255, 255, 255, 0.05)",
-                    placeholder: "#A0C8FF",
-                    text: "#FFFFFF",
+                    onSurface: "#FFFFFF",
+                    onSurfaceVariant: "#A0C8FF",
+                    background: "rgba(255, 255, 255, 0.08)",
+                    surface: "rgba(255, 255, 255, 0.08)",
+                    outline: "rgba(160, 200, 255, 0.5)",
                   },
                 }}
-                left={<TextInput.Icon icon="email" color="#A0C8FF" />}
+                textColor="#FFFFFF"
+                left={<TextInput.Icon icon="email" iconColor="#A0C8FF" />}
               />
+
               <TextInput
                 label="Password"
                 value={password}
                 onChangeText={setPassword}
                 mode="flat"
-                secureTextEntry
+                secureTextEntry={!showPassword}
                 style={[styles.input, styles.inputSpacing]}
                 theme={{
                   colors: {
                     primary: "#FFD700",
-                    background: "rgba(255, 255, 255, 0.05)",
-                    placeholder: "#A0C8FF",
-                    text: "#FFFFFF",
+                    onSurface: "#FFFFFF",
+                    onSurfaceVariant: "#A0C8FF",
+                    background: "rgba(255, 255, 255, 0.08)",
+                    surface: "rgba(255, 255, 255, 0.08)",
+                    outline: "rgba(160, 200, 255, 0.5)",
                   },
                 }}
-                left={<TextInput.Icon icon="lock" color="#A0C8FF" />}
+                textColor="#FFFFFF"
+                left={<TextInput.Icon icon="lock" iconColor="#A0C8FF" />}
+                right={
+                  <TextInput.Icon
+                    icon={showPassword ? "eye-off" : "eye"}
+                    iconColor="#A0C8FF"
+                    onPress={() => setShowPassword(!showPassword)}
+                  />
+                }
               />
+
+              {isSignUp && (
+                <TextInput
+                  label="Confirm Password"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  mode="flat"
+                  secureTextEntry={!showConfirmPassword}
+                  style={[styles.input, styles.inputSpacing]}
+                  theme={{
+                    colors: {
+                      primary: "#FFD700",
+                      onSurface: "#FFFFFF",
+                      onSurfaceVariant: "#A0C8FF",
+                      background: "rgba(255, 255, 255, 0.08)",
+                      surface: "rgba(255, 255, 255, 0.08)",
+                      outline: "rgba(160, 200, 255, 0.5)",
+                    },
+                  }}
+                  textColor="#FFFFFF"
+                  left={
+                    <TextInput.Icon icon="lock-check" iconColor="#A0C8FF" />
+                  }
+                  right={
+                    <TextInput.Icon
+                      icon={showConfirmPassword ? "eye-off" : "eye"}
+                      iconColor="#A0C8FF"
+                      onPress={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                    />
+                  }
+                />
+              )}
+
               <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
                 <Button
                   mode="contained"
-                  onPress={() => handlePress(handleEmailSignIn)}
+                  onPress={() => handlePress(handleEmailAuth)}
                   loading={loading}
                   style={styles.authButton}
                   labelStyle={styles.buttonLabel}
                   contentStyle={styles.buttonContent}
-                  theme={{ colors: { primary: "#0A6847" } }}
+                  buttonColor="#0A6847"
                 >
-                  Sign In
+                  {isSignUp ? "Create Account" : "Sign In"}
                 </Button>
               </Animated.View>
             </View>
@@ -336,20 +364,14 @@ export default function AuthScreen({ navigation }: Props) {
             <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
               <Button
                 mode="contained"
-                icon={({ color, size }) => (
-                  <MaterialCommunityIcons
-                    name="google"
-                    color={color}
-                    size={size}
-                  />
-                )}
+                icon="google"
                 onPress={() => handlePress(() => promptAsync())}
                 loading={loading}
                 style={[styles.authButton, styles.googleButton]}
                 contentStyle={styles.buttonContent}
                 labelStyle={styles.buttonLabel}
                 disabled={!request}
-                theme={{ colors: { primary: "#4285F4" } }}
+                buttonColor="#4285F4"
               >
                 Continue with Google
               </Button>
@@ -371,12 +393,18 @@ export default function AuthScreen({ navigation }: Props) {
                     theme={{
                       colors: {
                         primary: "#FFD700",
-                        background: "rgba(255, 255, 255, 0.05)",
-                        placeholder: "#A0C8FF",
-                        text: "#FFFFFF",
+                        onSurface: "#FFFFFF",
+                        onSurfaceVariant: "#A0C8FF",
+                        background: "rgba(255, 255, 255, 0.08)",
+                        surface: "rgba(255, 255, 255, 0.08)",
+                        outline: "rgba(160, 200, 255, 0.5)",
                       },
                     }}
-                    left={<TextInput.Icon icon="cellphone" color="#A0C8FF" />}
+                    textColor="#FFFFFF"
+                    placeholderTextColor="#A0C8FF"
+                    left={
+                      <TextInput.Icon icon="cellphone" iconColor="#A0C8FF" />
+                    }
                   />
                   <Animated.View
                     style={{ transform: [{ scale: buttonScale }] }}
@@ -388,7 +416,7 @@ export default function AuthScreen({ navigation }: Props) {
                       style={styles.authButton}
                       labelStyle={styles.buttonLabel}
                       contentStyle={styles.buttonContent}
-                      theme={{ colors: { primary: "#0A6847" } }}
+                      buttonColor="#0A6847"
                     >
                       Send OTP
                     </Button>
@@ -406,12 +434,15 @@ export default function AuthScreen({ navigation }: Props) {
                     theme={{
                       colors: {
                         primary: "#FFD700",
-                        background: "rgba(255, 255, 255, 0.05)",
-                        placeholder: "#A0C8FF",
-                        text: "#FFFFFF",
+                        onSurface: "#FFFFFF",
+                        onSurfaceVariant: "#A0C8FF",
+                        background: "rgba(255, 255, 255, 0.08)",
+                        surface: "rgba(255, 255, 255, 0.08)",
+                        outline: "rgba(160, 200, 255, 0.5)",
                       },
                     }}
-                    left={<TextInput.Icon icon="numeric" color="#A0C8FF" />}
+                    textColor="#FFFFFF"
+                    left={<TextInput.Icon icon="numeric" iconColor="#A0C8FF" />}
                   />
                   <Animated.View
                     style={{ transform: [{ scale: buttonScale }] }}
@@ -423,7 +454,7 @@ export default function AuthScreen({ navigation }: Props) {
                       style={styles.authButton}
                       labelStyle={styles.buttonLabel}
                       contentStyle={styles.buttonContent}
-                      theme={{ colors: { primary: "#0A6847" } }}
+                      buttonColor="#0A6847"
                     >
                       Verify OTP
                     </Button>
@@ -434,10 +465,20 @@ export default function AuthScreen({ navigation }: Props) {
           )}
         </View>
 
+        {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>New to Cricket Buddy?</Text>
-          <TouchableOpacity onPress={() => Vibration.vibrate(5)}>
-            <Text style={styles.signupText}>Create Account</Text>
+          <Text style={styles.footerText}>
+            {isSignUp ? "Already have an account?" : "New to Cricket Buddy?"}
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              Vibration.vibrate(5);
+              setIsSignUp(!isSignUp);
+            }}
+          >
+            <Text style={styles.signupText}>
+              {isSignUp ? "Sign In" : "Create Account"}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -446,7 +487,6 @@ export default function AuthScreen({ navigation }: Props) {
           onDismiss={() => setError("")}
           duration={3000}
           style={styles.snackbar}
-          theme={{ colors: { surface: "#FF6B6B", accent: "#FFF" } }}
         >
           {error}
         </Snackbar>
@@ -481,18 +521,12 @@ const styles = StyleSheet.create({
   },
   logoIcon: {
     marginBottom: 16,
-    textShadowColor: "rgba(255, 215, 0, 0.4)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
   },
   title: {
     color: "#FFD700",
     fontWeight: "800",
     fontSize: 32,
     letterSpacing: 1,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
   },
   subtitle: {
     color: "#A0C8FF",
@@ -559,7 +593,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   input: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
     borderRadius: 12,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
