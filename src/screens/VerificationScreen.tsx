@@ -2,15 +2,28 @@ import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Button, Text } from "react-native";
 import { auth } from "../firebase/firebase";
 import { sendEmailVerification } from "firebase/auth";
+import { RouteProp } from "@react-navigation/native";
+import { RootStackParamList } from "../navigation/AppNavigator";
 
-export default function VerificationScreen({ route }) {
+type VerificationScreenRouteProp = RouteProp<
+  RootStackParamList,
+  "Verification"
+>;
+
+type Props = {
+  route: VerificationScreenRouteProp;
+};
+
+export default function VerificationScreen({ route }: Props) {
   const [resendDisabled, setResendDisabled] = useState(false);
   const email = route.params?.email || "";
 
   const handleResendVerification = async () => {
     setResendDisabled(true);
     try {
-      await sendEmailVerification(auth.currentUser);
+      if (auth.currentUser) {
+        await sendEmailVerification(auth.currentUser);
+      }
       setTimeout(() => setResendDisabled(false), 30000);
     } catch (error) {
       console.error(error);
