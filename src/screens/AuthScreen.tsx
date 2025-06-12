@@ -9,3 +9,9 @@ import {
   useTheme,
 } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  signInWithEmailAndPassword,
+  signInWithCredential,
+  PhoneAuthProvider,
+  GoogleAuthProvider,
+} from "firebase/auth";
