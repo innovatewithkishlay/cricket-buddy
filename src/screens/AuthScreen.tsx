@@ -22,6 +22,7 @@ import {
   signInWithCredential,
   signInWithPhoneNumber,
   GoogleAuthProvider,
+  sendEmailVerification,
 } from "firebase/auth";
 import { auth } from "../firebase/firebase";
 import * as Google from "expo-auth-session/providers/google";
@@ -53,6 +54,7 @@ export default function AuthScreen({ navigation }: Props) {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
 
   const tabAnim = useRef(new Animated.Value(0)).current;
   const buttonScale = useRef(new Animated.Value(1)).current;
@@ -114,12 +116,31 @@ export default function AuthScreen({ navigation }: Props) {
       setError("Passwords don't match");
       return;
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setError("Please enter a valid email address");
+      return;
+    }
     setLoading(true);
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email.trim(),
+          password
+        );
+        await sendEmailVerification(userCredential.user);
+        setShowVerificationPrompt(true);
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          email.trim(),
+          password
+        );
+        if (!userCredential.user.emailVerified) {
+          setShowVerificationPrompt(true);
+          setError("Please verify your email before signing in.");
+        }
       }
     } catch (error: any) {
       setError(error?.message || `${isSignUp ? "Sign up" : "Sign in"} failed`);
@@ -343,6 +364,12 @@ export default function AuthScreen({ navigation }: Props) {
                   {isSignUp ? "Create Account" : "Sign In"}
                 </Button>
               </Animated.View>
+              {showVerificationPrompt && (
+                <Text style={styles.verificationPrompt}>
+                  A verification link has been sent to your email. Please verify
+                  your email before signing in.
+                </Text>
+              )}
             </View>
           )}
           {activeTab === "google" && (
@@ -454,6 +481,8 @@ export default function AuthScreen({ navigation }: Props) {
             onPress={() => {
               Vibration.vibrate(5);
               setIsSignUp(!isSignUp);
+              setShowVerificationPrompt(false);
+              setError("");
             }}
           >
             <Text style={styles.signupText}>
@@ -599,6 +628,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 16,
     letterSpacing: 0.5,
+  },
+  verificationPrompt: {
+    color: "#FFD700",
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: 18,
+    fontSize: 16,
   },
   footer: {
     flexDirection: "row",
