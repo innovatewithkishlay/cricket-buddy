@@ -33,7 +33,6 @@ import {
 } from "../firebase/googleConfig";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
-import { Audio } from "expo-av";
 
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, "Auth">;
 type Props = {
@@ -53,7 +52,6 @@ export default function AuthScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [pulseAnim] = useState(new Animated.Value(1));
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
   const tabAnim = useRef(new Animated.Value(0)).current;
   const buttonScale = useRef(new Animated.Value(1)).current;
 
@@ -67,24 +65,6 @@ export default function AuthScreen({ navigation }: Props) {
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId,
   });
-
-  // Load sound effects
-  useEffect(() => {
-    const loadSounds = async () => {
-      const { sound } = await Audio.Sound.createAsync(
-        require("../assets/sounds/tap.wav")
-      );
-      setSound(sound);
-    };
-
-    loadSounds();
-
-    return () => {
-      if (sound) {
-        sound.unloadAsync();
-      }
-    };
-  }, []);
 
   // Animation effects
   useEffect(() => {
@@ -127,19 +107,8 @@ export default function AuthScreen({ navigation }: Props) {
     }
   }, [response]);
 
-  const playSound = async () => {
-    try {
-      if (sound) {
-        await sound.replayAsync();
-      }
-    } catch (error) {
-      console.log("Error playing sound", error);
-    }
-  };
-
   const handlePress = (action: () => void) => {
-    // Play sound and provide haptic feedback
-    playSound();
+    // Provide haptic feedback
     Vibration.vibrate(5);
 
     // Button press animation
@@ -235,7 +204,7 @@ export default function AuthScreen({ navigation }: Props) {
           <TouchableOpacity
             style={styles.tabButton}
             onPress={() => {
-              playSound();
+              Vibration.vibrate(5);
               setActiveTab("email");
             }}
           >
@@ -258,7 +227,7 @@ export default function AuthScreen({ navigation }: Props) {
           <TouchableOpacity
             style={styles.tabButton}
             onPress={() => {
-              playSound();
+              Vibration.vibrate(5);
               setActiveTab("google");
             }}
           >
@@ -281,7 +250,7 @@ export default function AuthScreen({ navigation }: Props) {
           <TouchableOpacity
             style={styles.tabButton}
             onPress={() => {
-              playSound();
+              Vibration.vibrate(5);
               setActiveTab("phone");
             }}
           >
@@ -467,7 +436,7 @@ export default function AuthScreen({ navigation }: Props) {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>New to Cricket Buddy?</Text>
-          <TouchableOpacity onPress={playSound}>
+          <TouchableOpacity onPress={() => Vibration.vibrate(5)}>
             <Text style={styles.signupText}>Create Account</Text>
           </TouchableOpacity>
         </View>
