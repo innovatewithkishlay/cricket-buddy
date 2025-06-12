@@ -21,10 +21,6 @@ export default function App() {
   if (loading) return null;
 
   return (
-    <PaperProvider>
-      <NavigationContainer>
-        {user ? <HomeScreen /> : <AppNavigator />}
-      </NavigationContainer>
-    </PaperProvider>
+    <PaperProvider>{user ? <HomeScreen /> : <AppNavigator />}</PaperProvider>
   );
 }
