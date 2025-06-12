@@ -15,3 +15,10 @@ import {
   PhoneAuthProvider,
   GoogleAuthProvider,
 } from "firebase/auth";
+import { auth } from "../firebase/firebase";
+import * as Google from "expo-auth-session/providers/google";
+import {
+  ANDROID_CLIENT_ID,
+  EXPO_CLIENT_ID,
+  IOS_CLIENT_ID,
+} from "../firebase/googleConfig";
