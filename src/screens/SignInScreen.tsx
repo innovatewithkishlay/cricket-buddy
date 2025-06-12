@@ -25,7 +25,6 @@ export default function SignInScreen() {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Navigation to Home will be handled by auth state in App.tsx
     } catch (err: any) {
       setError(err.message);
       setVisible(true);
