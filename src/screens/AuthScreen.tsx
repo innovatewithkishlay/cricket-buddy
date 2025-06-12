@@ -22,8 +22,14 @@ import {
   EXPO_CLIENT_ID,
   IOS_CLIENT_ID,
 } from "../firebase/googleConfig";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { RootStackParamList } from "../navigation/AppNavigator";
+type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, "Auth">;
+type Props = {
+  navigation: AuthScreenNavigationProp;
+};
 
-export default function AuthScreen({ navigation }) {
+export default function AuthScreen({ navigation }: Props) {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState<"email" | "google" | "phone">(
     "email"
@@ -36,7 +42,6 @@ export default function AuthScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Google Auth
   const [request, response, promptAsync] = Google.useAuthRequest({
     androidClientId: ANDROID_CLIENT_ID,
     iosClientId: IOS_CLIENT_ID,
@@ -62,7 +67,6 @@ export default function AuthScreen({ navigation }) {
     }
   };
 
-  // Email/Password Sign In
   const handleEmailSignIn = async () => {
     setLoading(true);
     try {
@@ -74,7 +78,6 @@ export default function AuthScreen({ navigation }) {
     }
   };
 
-  // Phone Auth
   const handleSendOtp = async () => {
     setLoading(true);
     try {
@@ -108,7 +111,6 @@ export default function AuthScreen({ navigation }) {
           Welcome to Cricket Buddy
         </Text>
 
-        {/* Auth Method Tabs */}
         <View style={styles.tabContainer}>
           <Button
             mode={activeTab === "email" ? "contained" : "outlined"}
@@ -135,7 +137,6 @@ export default function AuthScreen({ navigation }) {
           </Button>
         </View>
 
-        {/* Email/PASSWORD FORM */}
         {activeTab === "email" && (
           <View style={styles.form}>
             <TextInput
@@ -165,7 +166,6 @@ export default function AuthScreen({ navigation }) {
           </View>
         )}
 
-        {/* GOOGLE AUTH */}
         {activeTab === "google" && (
           <Button
             mode="contained"
@@ -180,7 +180,6 @@ export default function AuthScreen({ navigation }) {
           </Button>
         )}
 
-        {/* PHONE AUTH */}
         {activeTab === "phone" && (
           <View style={styles.form}>
             {!confirmResult ? (
@@ -224,7 +223,6 @@ export default function AuthScreen({ navigation }) {
           </View>
         )}
 
-        {/* Error Handling */}
         <Snackbar
           visible={!!error}
           onDismiss={() => setError("")}
