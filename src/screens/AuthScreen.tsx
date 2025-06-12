@@ -12,7 +12,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   signInWithEmailAndPassword,
   signInWithCredential,
-  PhoneAuthProvider,
+  signInWithPhoneNumber,
   GoogleAuthProvider,
 } from "firebase/auth";
 import { auth } from "../firebase/firebase";
@@ -24,6 +24,7 @@ import {
 } from "../firebase/googleConfig";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
+
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList, "Auth">;
 type Props = {
   navigation: AuthScreenNavigationProp;
@@ -42,10 +43,15 @@ export default function AuthScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const clientId =
+    Platform.OS === "android"
+      ? ANDROID_CLIENT_ID
+      : Platform.OS === "ios"
+      ? IOS_CLIENT_ID
+      : EXPO_CLIENT_ID;
+
   const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: ANDROID_CLIENT_ID,
-    iosClientId: IOS_CLIENT_ID,
-    expoClientId: EXPO_CLIENT_ID,
+    clientId,
   });
 
   useEffect(() => {
@@ -60,8 +66,8 @@ export default function AuthScreen({ navigation }: Props) {
     setLoading(true);
     try {
       await signInWithCredential(auth, credential);
-    } catch (error) {
-      setError(error.message);
+    } catch (error: any) {
+      setError(error?.message || "Google sign-in failed");
     } finally {
       setLoading(false);
     }
@@ -71,8 +77,8 @@ export default function AuthScreen({ navigation }: Props) {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      setError(error.message);
+    } catch (error: any) {
+      setError(error?.message || "Email sign-in failed");
     } finally {
       setLoading(false);
     }
@@ -83,8 +89,8 @@ export default function AuthScreen({ navigation }: Props) {
     try {
       const confirmation = await signInWithPhoneNumber(auth, phone);
       setConfirmResult(confirmation);
-    } catch (error) {
-      setError(error.message);
+    } catch (error: any) {
+      setError(error?.message || "OTP sending failed");
     } finally {
       setLoading(false);
     }
@@ -94,8 +100,8 @@ export default function AuthScreen({ navigation }: Props) {
     setLoading(true);
     try {
       await confirmResult.confirm(otp);
-    } catch (error) {
-      setError(error.message);
+    } catch (error: any) {
+      setError(error?.message || "OTP verification failed");
     } finally {
       setLoading(false);
     }
@@ -116,6 +122,7 @@ export default function AuthScreen({ navigation }: Props) {
             mode={activeTab === "email" ? "contained" : "outlined"}
             onPress={() => setActiveTab("email")}
             style={styles.tabButton}
+            icon="email"
           >
             Email
           </Button>
@@ -123,7 +130,9 @@ export default function AuthScreen({ navigation }: Props) {
             mode={activeTab === "google" ? "contained" : "outlined"}
             onPress={() => setActiveTab("google")}
             style={styles.tabButton}
-            icon="google"
+            icon={({ color, size }) => (
+              <MaterialCommunityIcons name="google" color={color} size={size} />
+            )}
           >
             Google
           </Button>
@@ -169,12 +178,15 @@ export default function AuthScreen({ navigation }: Props) {
         {activeTab === "google" && (
           <Button
             mode="contained"
-            icon="google"
+            icon={({ color, size }) => (
+              <MaterialCommunityIcons name="google" color={color} size={size} />
+            )}
             onPress={() => promptAsync()}
             loading={loading}
             style={styles.authButton}
             contentStyle={styles.googleButtonContent}
             labelStyle={styles.googleButtonLabel}
+            disabled={!request}
           >
             Continue with Google
           </Button>
@@ -263,6 +275,7 @@ const styles = StyleSheet.create({
   tabButton: {
     flex: 1,
     borderRadius: 8,
+    marginHorizontal: 2,
   },
   form: {
     gap: 16,
