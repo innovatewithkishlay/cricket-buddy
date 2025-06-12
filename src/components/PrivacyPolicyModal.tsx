@@ -8,7 +8,15 @@ import {
   Text,
 } from "react-native";
 
-export default function PrivacyPolicyModal({ visible, onClose }) {
+type PrivacyPolicyModalProps = {
+  visible: boolean;
+  onClose: () => void;
+};
+
+export default function PrivacyPolicyModal({
+  visible,
+  onClose,
+}: PrivacyPolicyModalProps) {
   return (
     <Modal
       animationType="slide"
