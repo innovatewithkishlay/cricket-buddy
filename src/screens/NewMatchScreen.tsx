@@ -183,6 +183,7 @@ export default function NewMatchScreen({ navigation }: Props) {
                 onPress={() => removePlayer("B", index)}
                 icon="close"
                 style={styles.removeButton}
+                children={""}
               />
             )}
           </View>
