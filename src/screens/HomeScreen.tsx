@@ -4,14 +4,22 @@ import { Text, Card, Button, FAB, useTheme, Avatar } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { auth } from "../firebase/firebase";
 import { signOut } from "firebase/auth";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { RootStackParamList } from "../navigation/AppNavigator";
 
-export default function HomeScreen() {
+type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, "Home">;
+
+type Props = {
+  navigation: HomeScreenNavigationProp;
+};
+
+export default function HomeScreen({ navigation }: Props) {
   const theme = useTheme();
   const [profileVisible, setProfileVisible] = useState(false);
 
   const user = {
-    name: auth.currentUser?.displayName || "Kishlay sinha",
-    email: auth.currentUser?.email || "kishlay@example.com",
+    name: auth.currentUser?.displayName || "Cricket User",
+    email: auth.currentUser?.email || "user@example.com",
     avatar:
       "https://ui-avatars.com/api/?name=" +
       (auth.currentUser?.displayName || "Unknown") +
@@ -43,7 +51,7 @@ export default function HomeScreen() {
         <View style={styles.cardRow}>
           <Card
             style={[styles.card, { backgroundColor: "#f5faff" }]}
-            onPress={() => {}}
+            onPress={() => navigation.navigate("NewMatch")}
           >
             <Card.Content style={styles.cardContent}>
               <Icon name="cricket" size={36} color={theme.colors.primary} />
@@ -54,7 +62,7 @@ export default function HomeScreen() {
           </Card>
           <Card
             style={[styles.card, { backgroundColor: "#fff7f0" }]}
-            onPress={() => {}}
+            onPress={() => navigation.navigate("PastMatches")}
           >
             <Card.Content style={styles.cardContent}>
               <Icon name="history" size={36} color="#ff9800" />
@@ -68,7 +76,7 @@ export default function HomeScreen() {
         <View style={styles.cardRow}>
           <Card
             style={[styles.card, { backgroundColor: "#f6fff5" }]}
-            onPress={() => {}}
+            onPress={() => navigation.navigate("Export")}
           >
             <Card.Content style={styles.cardContent}>
               <Icon name="file-export-outline" size={36} color="#4caf50" />
@@ -79,6 +87,7 @@ export default function HomeScreen() {
           </Card>
         </View>
 
+        {/* Stats section can be made dynamic in the next step */}
         <View style={styles.statsSection}>
           <Text
             variant="titleMedium"
@@ -92,19 +101,19 @@ export default function HomeScreen() {
                 variant="headlineSmall"
                 style={{ color: theme.colors.primary }}
               >
-                12
+                0
               </Text>
               <Text variant="bodySmall">Matches</Text>
             </View>
             <View style={styles.statBox}>
               <Text variant="headlineSmall" style={{ color: "#4caf50" }}>
-                8
+                0
               </Text>
               <Text variant="bodySmall">Wins</Text>
             </View>
             <View style={styles.statBox}>
               <Text variant="headlineSmall" style={{ color: "#f44336" }}>
-                4
+                0
               </Text>
               <Text variant="bodySmall">Losses</Text>
             </View>
@@ -116,7 +125,7 @@ export default function HomeScreen() {
         icon="plus"
         label="New Match"
         style={styles.fab}
-        onPress={() => {}}
+        onPress={() => navigation.navigate("NewMatch")}
         color="#fff"
       />
 
