@@ -323,4 +323,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
+  input: {
+    marginBottom: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    color: "#FFFFFF",
+  },
 });
