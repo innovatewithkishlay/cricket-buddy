@@ -1,93 +1,48 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Animated,
   Vibration,
-  Pressable,
-  Text as RNText,
 } from "react-native";
-import { Text, Button, ActivityIndicator, Checkbox } from "react-native-paper";
+import { Text, Button, TextInput, ActivityIndicator } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { signInWithCredential, GoogleAuthProvider } from "firebase/auth";
-import { auth } from "../firebase/firebase";
-import * as Google from "expo-auth-session/providers/google";
-import PrivacyPolicyModal from "../components/PrivacyPolicyModal";
 import {
-  ANDROID_CLIENT_ID,
-  EXPO_CLIENT_ID,
-  IOS_CLIENT_ID,
-} from "../firebase/googleConfig";
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+import { auth } from "../firebase/firebase";
 
 export default function AuthScreen() {
-  const clientId = Platform.select({
-    android: ANDROID_CLIENT_ID,
-    ios: IOS_CLIENT_ID,
-    default: EXPO_CLIENT_ID,
-  });
-
-  const [request, response, promptAsync] = Google.useAuthRequest({ clientId });
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [agreed, setAgreed] = useState(false);
-  const [privacyVisible, setPrivacyVisible] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
-  const buttonScale = useState(new Animated.Value(1))[0];
-  const tooltipTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    if (response?.type === "success") {
-      const { id_token } = response.params;
-      const credential = GoogleAuthProvider.credential(id_token);
-      setLoading(true);
-      signInWithCredential(auth, credential)
-        .catch((err) => setError(err.message))
-        .finally(() => setLoading(false));
+  const handleAuth = async () => {
+    setError("");
+    if (!email || !password || (isSignUp && !confirmPassword)) {
+      setError("Please fill all fields.");
+      return;
     }
-  }, [response]);
-
-  useEffect(() => {
-    return () => {
-      if (tooltipTimeout.current) {
-        clearTimeout(tooltipTimeout.current);
-      }
-    };
-  }, []);
-
-  const handlePress = () => {
-    Animated.sequence([
-      Animated.timing(buttonScale, {
-        toValue: 0.95,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(buttonScale, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-    Vibration.vibrate(5);
-    promptAsync();
-  };
-
-  const onCheckboxPress = () => {
-    setAgreed((prev) => !prev);
-    setShowTooltip(false);
-    if (tooltipTimeout.current) {
-      clearTimeout(tooltipTimeout.current);
+    if (isSignUp && password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
     }
-  };
-
-  const onCheckboxHoverOrFocus = () => {
-    if (!agreed) {
-      setShowTooltip(true);
-      if (tooltipTimeout.current) {
-        clearTimeout(tooltipTimeout.current);
+    setLoading(true);
+    try {
+      if (isSignUp) {
+        await createUserWithEmailAndPassword(auth, email.trim(), password);
+      } else {
+        await signInWithEmailAndPassword(auth, email.trim(), password);
       }
-      tooltipTimeout.current = setTimeout(() => setShowTooltip(false), 2500);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -109,34 +64,83 @@ export default function AuthScreen() {
         </View>
 
         <View style={styles.card}>
-          <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-            <Button
-              mode="contained"
-              onPress={handlePress}
-              loading={loading}
-              disabled={!request || loading || !agreed}
-              style={[
-                styles.googleButton,
-                (!agreed || loading) && styles.googleButtonDisabled,
-              ]}
-              contentStyle={styles.buttonContent}
-              labelStyle={styles.buttonLabel}
-              uppercase={false}
-              icon={() => (
-                <MaterialCommunityIcons
-                  name="google"
-                  size={24}
-                  color="#fff"
-                  style={{ marginRight: 12 }}
-                />
-              )}
-            >
-              Continue with Google
-            </Button>
-          </Animated.View>
+          <TextInput
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            mode="flat"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            style={styles.input}
+            theme={{
+              colors: {
+                primary: "#FFD700",
+                onSurface: "#FFFFFF",
+                onSurfaceVariant: "#A0C8FF",
+                background: "rgba(255, 255, 255, 0.08)",
+                surface: "rgba(255, 255, 255, 0.08)",
+                outline: "rgba(160, 200, 255, 0.5)",
+              },
+            }}
+            textColor="#FFFFFF"
+            left={<TextInput.Icon icon="email" color="#A0C8FF" />}
+          />
+          <TextInput
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            mode="flat"
+            secureTextEntry
+            style={[styles.input, styles.inputSpacing]}
+            theme={{
+              colors: {
+                primary: "#FFD700",
+                onSurface: "#FFFFFF",
+                onSurfaceVariant: "#A0C8FF",
+                background: "rgba(255, 255, 255, 0.08)",
+                surface: "rgba(255, 255, 255, 0.08)",
+                outline: "rgba(160, 200, 255, 0.5)",
+              },
+            }}
+            textColor="#FFFFFF"
+            left={<TextInput.Icon icon="lock" color="#A0C8FF" />}
+          />
+          {isSignUp && (
+            <TextInput
+              label="Confirm Password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              mode="flat"
+              secureTextEntry
+              style={[styles.input, styles.inputSpacing]}
+              theme={{
+                colors: {
+                  primary: "#FFD700",
+                  onSurface: "#FFFFFF",
+                  onSurfaceVariant: "#A0C8FF",
+                  background: "rgba(255, 255, 255, 0.08)",
+                  surface: "rgba(255, 255, 255, 0.08)",
+                  outline: "rgba(160, 200, 255, 0.5)",
+                },
+              }}
+              textColor="#FFFFFF"
+              left={<TextInput.Icon icon="lock-check" color="#A0C8FF" />}
+            />
+          )}
+
+          <Button
+            mode="contained"
+            onPress={handleAuth}
+            loading={loading}
+            style={styles.authButton}
+            labelStyle={styles.buttonLabel}
+            contentStyle={styles.buttonContent}
+            buttonColor="#0A6847"
+          >
+            {isSignUp ? "Sign Up" : "Sign In"}
+          </Button>
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
-
           {loading && (
             <ActivityIndicator
               size="large"
@@ -144,46 +148,26 @@ export default function AuthScreen() {
               style={styles.loader}
             />
           )}
+        </View>
 
-          <View style={styles.agreeRow}>
-            <Pressable
-              onPress={onCheckboxPress}
-              onLongPress={onCheckboxHoverOrFocus}
-              onPressIn={onCheckboxHoverOrFocus}
-              android_disableSound={true}
-              style={{ flexDirection: "row", alignItems: "center" }}
-            >
-              <Checkbox
-                status={agreed ? "checked" : "unchecked"}
-                onPress={onCheckboxPress}
-                color="#FFD700"
-                uncheckedColor="#A0C8FF"
-              />
-              <Text style={styles.agreeText}>
-                I agree to the Terms and{" "}
-                <Text
-                  style={styles.privacyLink}
-                  onPress={() => setPrivacyVisible(true)}
-                >
-                  Privacy Policy
-                </Text>
-              </Text>
-            </Pressable>
-            {showTooltip && (
-              <View style={styles.tooltip}>
-                <RNText style={styles.tooltipText}>
-                  Please agree to the policy to continue
-                </RNText>
-              </View>
-            )}
-          </View>
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            {isSignUp ? "Already have an account?" : "Don't have an account?"}
+          </Text>
+          <Button
+            onPress={() => {
+              setIsSignUp((prev) => !prev);
+              setError("");
+              setPassword("");
+              setConfirmPassword("");
+            }}
+            mode="text"
+            labelStyle={styles.switchLabel}
+          >
+            {isSignUp ? "Sign In" : "Sign Up"}
+          </Button>
         </View>
       </View>
-
-      <PrivacyPolicyModal
-        visible={privacyVisible}
-        onClose={() => setPrivacyVisible(false)}
-      />
     </KeyboardAvoidingView>
   );
 }
@@ -238,30 +222,31 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
-  googleButton: {
-    backgroundColor: "#4285F4",
+  input: {
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
     borderRadius: 12,
-    height: 52,
-    justifyContent: "center",
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  inputSpacing: {
+    marginTop: 8,
+  },
+  authButton: {
+    borderRadius: 12,
+    marginTop: 24,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 5,
   },
-  googleButtonDisabled: {
-    backgroundColor: "#A0C8FF",
-    opacity: 0.6,
-  },
   buttonContent: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+    height: 48,
   },
   buttonLabel: {
     color: "#FFF",
     fontWeight: "700",
-    fontSize: 18,
+    fontSize: 16,
     letterSpacing: 0.5,
   },
   error: {
@@ -278,40 +263,22 @@ const styles = StyleSheet.create({
     marginTop: 30,
     alignSelf: "center",
   },
-  agreeRow: {
-    marginTop: 28,
-    marginBottom: -8,
-    position: "relative",
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 32,
+    alignItems: "center",
   },
-  agreeText: {
+  footerText: {
     color: "#A0C8FF",
-    fontSize: 14,
-    flexShrink: 1,
-    flexWrap: "wrap",
+    marginRight: 4,
+    opacity: 0.9,
+    fontSize: 15,
   },
-  privacyLink: {
+  switchLabel: {
     color: "#FFD700",
-    textDecorationLine: "underline",
     fontWeight: "700",
-  },
-  tooltip: {
-    position: "absolute",
-    top: 40,
-    left: 40,
-    backgroundColor: "#FFD700",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
-    zIndex: 1000,
-  },
-  tooltipText: {
-    color: "#0A3D2C",
-    fontWeight: "600",
-    fontSize: 13,
+    fontSize: 15,
+    textDecorationLine: "underline",
   },
 });
