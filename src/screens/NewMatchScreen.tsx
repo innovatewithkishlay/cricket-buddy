@@ -85,8 +85,8 @@ export default function NewMatchScreen({ navigation }: Props) {
         status: "upcoming",
       });
       navigation.navigate("Home");
-    } catch (error) {
-      Alert.alert("Error", "Failed to save match: " + error.message);
+    } catch (error: unknown) {
+      Alert.alert("Error", "Failed to save match: " + getErrorMessage(error));
     }
   };
 
