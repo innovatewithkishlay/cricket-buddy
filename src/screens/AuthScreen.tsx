@@ -11,12 +11,14 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  updateProfile,
 } from "firebase/auth";
 import { auth } from "../firebase/firebase";
 import Loader from "../components/Loader";
 
 export default function AuthScreen() {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -27,7 +29,10 @@ export default function AuthScreen() {
 
   const handleAuth = async () => {
     setError("");
-    if (!email || !password || (isSignUp && !confirmPassword)) {
+    if (
+      (isSignUp && (!name || !email || !password || !confirmPassword)) ||
+      (!isSignUp && (!email || !password))
+    ) {
       setError("Please fill all fields.");
       return;
     }
@@ -38,7 +43,15 @@ export default function AuthScreen() {
     setLoading(true);
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email.trim(), password);
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email.trim(),
+          password
+        );
+        // Store the name in Firebase Auth profile
+        await updateProfile(userCredential.user, {
+          displayName: name.trim(),
+        });
       } else {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       }
@@ -67,6 +80,27 @@ export default function AuthScreen() {
         </View>
 
         <View style={styles.card}>
+          {isSignUp && (
+            <TextInput
+              label="Full Name"
+              value={name}
+              onChangeText={setName}
+              mode="flat"
+              style={styles.input}
+              theme={{
+                colors: {
+                  primary: "#FFD700",
+                  onSurface: "#FFFFFF",
+                  onSurfaceVariant: "#A0C8FF",
+                  background: "rgba(255,255,255,0.08)",
+                  surface: "rgba(255,255,255,0.08)",
+                  outline: "rgba(160,200,255,0.5)",
+                },
+              }}
+              textColor="#FFFFFF"
+              left={<TextInput.Icon icon="account" color="#A0C8FF" />}
+            />
+          )}
           <TextInput
             label="Email"
             value={email}
@@ -74,7 +108,7 @@ export default function AuthScreen() {
             mode="flat"
             autoCapitalize="none"
             keyboardType="email-address"
-            style={styles.input}
+            style={[styles.input, isSignUp && styles.inputSpacing]}
             theme={{
               colors: {
                 primary: "#FFD700",
@@ -171,6 +205,7 @@ export default function AuthScreen() {
               setError("");
               setPassword("");
               setConfirmPassword("");
+              setName("");
             }}
           >
             <Text style={styles.switchLabel}>
