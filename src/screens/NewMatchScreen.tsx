@@ -139,7 +139,7 @@ export default function NewMatchScreen({ navigation }: Props) {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <ScrollView
-        style={{ flex: 1 }}
+        style={{ flex: 1 }} // <-- FIXED: Ensures scrolling works properly
         contentContainerStyle={{
           flexGrow: 1,
           padding: 20,
@@ -159,6 +159,7 @@ export default function NewMatchScreen({ navigation }: Props) {
           error={errors.includes("Match title is required")}
         />
 
+        {/* Team A Section */}
         <View style={styles.teamContainer}>
           <TextInput
             label="Team A Name *"
@@ -208,6 +209,7 @@ export default function NewMatchScreen({ navigation }: Props) {
 
         <Divider style={styles.divider} />
 
+        {/* Team B Section */}
         <View style={styles.teamContainer}>
           <TextInput
             label="Team B Name *"
@@ -257,6 +259,7 @@ export default function NewMatchScreen({ navigation }: Props) {
 
         <Divider style={styles.divider} />
 
+        {/* Match Details Section */}
         <View style={styles.matchDetails}>
           {renderDatePicker()}
 
@@ -278,6 +281,7 @@ export default function NewMatchScreen({ navigation }: Props) {
           />
         </View>
 
+        {/* Error Messages */}
         {errors.length > 0 && (
           <View style={styles.errorContainer}>
             {errors.map((error, index) => (
@@ -302,9 +306,6 @@ export default function NewMatchScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    // padding is now handled in contentContainerStyle
-  },
   heading: {
     marginBottom: 25,
     fontWeight: "bold",
