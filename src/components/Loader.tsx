@@ -1,7 +1,9 @@
 import React, { useRef, useEffect } from "react";
-import { Animated, StyleSheet, View } from "react-native";
+import { Animated, StyleSheet, View, Dimensions } from "react-native";
 import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+const { width, height } = Dimensions.get("window");
 
 export default function Loader() {
   const spinAnim = useRef(new Animated.Value(0)).current;
@@ -22,26 +24,29 @@ export default function Loader() {
   });
 
   return (
-    <View style={styles.container}>
-      <BlurView intensity={20} style={styles.blurContainer}>
-        <Animated.View style={{ transform: [{ rotate: spin }] }}>
-          <MaterialCommunityIcons name="cricket" size={64} color="#FFD700" />
-        </Animated.View>
-      </BlurView>
+    <View style={styles.overlay}>
+      <BlurView intensity={12} style={styles.blur} tint="dark" />
+      <Animated.View style={styles.iconContainer}>
+        <MaterialCommunityIcons name="cricket" size={64} color="#FFD700" />
+      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1000,
   },
-  blurContainer: {
-    padding: 40,
-    borderRadius: 20,
-    overflow: "hidden",
+  blur: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  iconContainer: {
+    position: "absolute",
+    alignSelf: "center",
+    top: "45%",
+    transform: [{ translateY: -32 }],
   },
 });
