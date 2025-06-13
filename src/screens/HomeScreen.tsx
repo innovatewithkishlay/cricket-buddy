@@ -14,7 +14,7 @@ export default function HomeScreen() {
     email: auth.currentUser?.email || "kishlay@example.com",
     avatar:
       "https://ui-avatars.com/api/?name=" +
-      (auth.currentUser?.displayName || "Kishlay") +
+      (auth.currentUser?.displayName || "Unknown") +
       "&background=0D8ABC&color=fff",
   };
 
