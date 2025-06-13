@@ -10,6 +10,13 @@ type Player = { name: string; role: string };
 type RootStackParamList = { Home: undefined };
 type Props = { navigation: StackNavigationProp<RootStackParamList, "Home"> };
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
 export default function NewMatchScreen({ navigation }: Props) {
   const theme = useTheme();
   const [matchTitle, setMatchTitle] = useState("");
