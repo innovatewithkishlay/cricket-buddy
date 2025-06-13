@@ -141,7 +141,7 @@ export default function NewMatchScreen({ navigation }: Props) {
       <ScrollView
         contentContainerStyle={{
           padding: 20,
-          paddingBottom: 120,
+          paddingBottom: 32,
         }}
         keyboardShouldPersistTaps="handled"
       >
