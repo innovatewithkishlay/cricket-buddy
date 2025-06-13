@@ -1,12 +1,10 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Animated,
-  Dimensions,
 } from "react-native";
 import { Text, Button, TextInput } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -15,9 +13,7 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { auth } from "../firebase/firebase";
-import { BlurView } from "expo-blur";
-
-const { width } = Dimensions.get("window");
+import Loader from "../components/Loader";
 
 export default function AuthScreen() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -28,7 +24,6 @@ export default function AuthScreen() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const ballAnim = useRef(new Animated.Value(0)).current;
 
   const handleAuth = async () => {
     setError("");
@@ -41,7 +36,6 @@ export default function AuthScreen() {
       return;
     }
     setLoading(true);
-    animateBall();
     try {
       if (isSignUp) {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
@@ -54,22 +48,6 @@ export default function AuthScreen() {
       setLoading(false);
     }
   };
-
-  const animateBall = () => {
-    ballAnim.setValue(0);
-    Animated.loop(
-      Animated.timing(ballAnim, {
-        toValue: 1,
-        duration: 900,
-        useNativeDriver: true,
-      })
-    ).start();
-  };
-
-  const ballSpin = ballAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
 
   return (
     <KeyboardAvoidingView
@@ -202,19 +180,7 @@ export default function AuthScreen() {
         </View>
       </View>
 
-      {loading && (
-        <View style={styles.loaderOverlay}>
-          <BlurView intensity={60} style={styles.blurView}>
-            <Animated.View style={{ transform: [{ rotate: ballSpin }] }}>
-              <MaterialCommunityIcons
-                name="cricket"
-                size={64}
-                color="#FFD700"
-              />
-            </Animated.View>
-          </BlurView>
-        </View>
-      )}
+      {loading && <Loader />}
     </KeyboardAvoidingView>
   );
 }
@@ -305,18 +271,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     fontSize: 14,
-  },
-  loaderOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 20,
-  },
-  blurView: {
-    width,
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
   },
   footer: {
     flexDirection: "row",
