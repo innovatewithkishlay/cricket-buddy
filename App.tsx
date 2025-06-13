@@ -4,6 +4,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./src/firebase/firebase";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import "./app.css";
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
