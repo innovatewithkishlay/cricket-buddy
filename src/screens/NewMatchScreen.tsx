@@ -137,169 +137,173 @@ export default function NewMatchScreen({ navigation }: Props) {
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.container,
-        { backgroundColor: theme.colors.background },
-      ]}
-    >
-      <Text variant="headlineMedium" style={styles.heading}>
-        New Cricket Match
-      </Text>
-
-      <TextInput
-        label="Match Title *"
-        value={matchTitle}
-        onChangeText={setMatchTitle}
-        style={styles.input}
-        error={errors.includes("Match title is required")}
-      />
-
-      <View style={styles.teamContainer}>
-        <TextInput
-          label="Team A Name *"
-          value={teamA}
-          onChangeText={setTeamA}
-          style={styles.teamInput}
-          error={errors.includes("Team A name is required")}
-        />
-
-        {playersA.map((player, index) => (
-          <View key={`A-${index}`} style={styles.playerRow}>
-            <TextInput
-              label={`Player ${index + 1} Name *`}
-              value={player.name}
-              onChangeText={(t) => handlePlayerChange(t, index, "name", "A")}
-              style={styles.playerInput}
-              error={
-                errors.includes("All Team A players need names") &&
-                !player.name.trim()
-              }
-            />
-            <TextInput
-              label="Role"
-              value={player.role}
-              onChangeText={(t) => handlePlayerChange(t, index, "role", "A")}
-              style={styles.roleInput}
-            />
-            {index > 0 && (
-              <Button
-                mode="text"
-                onPress={() => removePlayer("A", index)}
-                icon="close"
-                style={styles.removeButton}
-                children={""}
-              />
-            )}
-          </View>
-        ))}
-        <Button
-          mode="outlined"
-          onPress={() => addPlayer("A")}
-          style={styles.addButton}
-        >
-          Add Team A Player
-        </Button>
-      </View>
-
-      <Divider style={styles.divider} />
-
-      <View style={styles.teamContainer}>
-        <TextInput
-          label="Team B Name *"
-          value={teamB}
-          onChangeText={setTeamB}
-          style={styles.teamInput}
-          error={errors.includes("Team B name is required")}
-        />
-
-        {playersB.map((player, index) => (
-          <View key={`B-${index}`} style={styles.playerRow}>
-            <TextInput
-              label={`Player ${index + 1} Name *`}
-              value={player.name}
-              onChangeText={(t) => handlePlayerChange(t, index, "name", "B")}
-              style={styles.playerInput}
-              error={
-                errors.includes("All Team B players need names") &&
-                !player.name.trim()
-              }
-            />
-            <TextInput
-              label="Role"
-              value={player.role}
-              onChangeText={(t) => handlePlayerChange(t, index, "role", "B")}
-              style={styles.roleInput}
-            />
-            {index > 0 && (
-              <Button
-                mode="text"
-                onPress={() => removePlayer("B", index)}
-                icon="close"
-                style={styles.removeButton}
-                children={""}
-              />
-            )}
-          </View>
-        ))}
-        <Button
-          mode="outlined"
-          onPress={() => addPlayer("B")}
-          style={styles.addButton}
-        >
-          Add Team B Player
-        </Button>
-      </View>
-
-      <Divider style={styles.divider} />
-
-      <View style={styles.matchDetails}>
-        {renderDatePicker()}
-
-        <TextInput
-          label="Location"
-          value={location}
-          onChangeText={setLocation}
-          style={styles.input}
-          left={<TextInput.Icon icon="map-marker" />}
-        />
-
-        <TextInput
-          label="Number of Overs"
-          value={overs}
-          onChangeText={setOvers}
-          keyboardType="numeric"
-          style={styles.input}
-          left={<TextInput.Icon icon="clock" />}
-        />
-      </View>
-
-      {errors.length > 0 && (
-        <View style={styles.errorContainer}>
-          {errors.map((error, index) => (
-            <Text key={index} style={styles.errorText}>
-              ⚠️ {error}
-            </Text>
-          ))}
-        </View>
-      )}
-
-      <Button
-        mode="contained"
-        onPress={handleSubmit}
-        style={styles.submitButton}
-        labelStyle={styles.submitLabel}
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          padding: 20,
+          paddingBottom: 40,
+        }}
+        keyboardShouldPersistTaps="handled"
       >
-        Create Match
-      </Button>
-    </ScrollView>
+        <Text variant="headlineMedium" style={styles.heading}>
+          New Cricket Match
+        </Text>
+
+        <TextInput
+          label="Match Title *"
+          value={matchTitle}
+          onChangeText={setMatchTitle}
+          style={styles.input}
+          error={errors.includes("Match title is required")}
+        />
+
+        <View style={styles.teamContainer}>
+          <TextInput
+            label="Team A Name *"
+            value={teamA}
+            onChangeText={setTeamA}
+            style={styles.teamInput}
+            error={errors.includes("Team A name is required")}
+          />
+
+          {playersA.map((player, index) => (
+            <View key={`A-${index}`} style={styles.playerRow}>
+              <TextInput
+                label={`Player ${index + 1} Name *`}
+                value={player.name}
+                onChangeText={(t) => handlePlayerChange(t, index, "name", "A")}
+                style={styles.playerInput}
+                error={
+                  errors.includes("All Team A players need names") &&
+                  !player.name.trim()
+                }
+              />
+              <TextInput
+                label="Role"
+                value={player.role}
+                onChangeText={(t) => handlePlayerChange(t, index, "role", "A")}
+                style={styles.roleInput}
+              />
+              {index > 0 && (
+                <Button
+                  mode="text"
+                  onPress={() => removePlayer("A", index)}
+                  icon="close"
+                  style={styles.removeButton}
+                  children={""}
+                />
+              )}
+            </View>
+          ))}
+          <Button
+            mode="outlined"
+            onPress={() => addPlayer("A")}
+            style={styles.addButton}
+          >
+            Add Team A Player
+          </Button>
+        </View>
+
+        <Divider style={styles.divider} />
+
+        <View style={styles.teamContainer}>
+          <TextInput
+            label="Team B Name *"
+            value={teamB}
+            onChangeText={setTeamB}
+            style={styles.teamInput}
+            error={errors.includes("Team B name is required")}
+          />
+
+          {playersB.map((player, index) => (
+            <View key={`B-${index}`} style={styles.playerRow}>
+              <TextInput
+                label={`Player ${index + 1} Name *`}
+                value={player.name}
+                onChangeText={(t) => handlePlayerChange(t, index, "name", "B")}
+                style={styles.playerInput}
+                error={
+                  errors.includes("All Team B players need names") &&
+                  !player.name.trim()
+                }
+              />
+              <TextInput
+                label="Role"
+                value={player.role}
+                onChangeText={(t) => handlePlayerChange(t, index, "role", "B")}
+                style={styles.roleInput}
+              />
+              {index > 0 && (
+                <Button
+                  mode="text"
+                  onPress={() => removePlayer("B", index)}
+                  icon="close"
+                  style={styles.removeButton}
+                  children={""}
+                />
+              )}
+            </View>
+          ))}
+          <Button
+            mode="outlined"
+            onPress={() => addPlayer("B")}
+            style={styles.addButton}
+          >
+            Add Team B Player
+          </Button>
+        </View>
+
+        <Divider style={styles.divider} />
+
+        <View style={styles.matchDetails}>
+          {renderDatePicker()}
+
+          <TextInput
+            label="Location"
+            value={location}
+            onChangeText={setLocation}
+            style={styles.input}
+            left={<TextInput.Icon icon="map-marker" />}
+          />
+
+          <TextInput
+            label="Number of Overs"
+            value={overs}
+            onChangeText={setOvers}
+            keyboardType="numeric"
+            style={styles.input}
+            left={<TextInput.Icon icon="clock" />}
+          />
+        </View>
+
+        {errors.length > 0 && (
+          <View style={styles.errorContainer}>
+            {errors.map((error, index) => (
+              <Text key={index} style={styles.errorText}>
+                ⚠️ {error}
+              </Text>
+            ))}
+          </View>
+        )}
+
+        <Button
+          mode="contained"
+          onPress={handleSubmit}
+          style={styles.submitButton}
+          labelStyle={styles.submitLabel}
+        >
+          Create Match
+        </Button>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    paddingBottom: 40,
+    // padding is now handled in contentContainerStyle
   },
   heading: {
     marginBottom: 25,
