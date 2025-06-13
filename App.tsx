@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./src/firebase/firebase";
 import AppNavigator from "./src/navigation/AppNavigator";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
@@ -19,8 +20,10 @@ export default function App() {
   if (loading) return null;
 
   return (
-    <PaperProvider>
-      <AppNavigator user={user} />
-    </PaperProvider>
+    <SafeAreaProvider>
+      <PaperProvider>
+        <AppNavigator user={user} />
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }

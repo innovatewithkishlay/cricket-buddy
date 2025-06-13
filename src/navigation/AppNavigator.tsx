@@ -38,7 +38,7 @@ export default function AppNavigator({ user }: AppNavigatorProps) {
             <Stack.Screen
               name="NewMatch"
               component={NewMatchScreen}
-              options={{ title: "New Match" }}
+              options={{ title: "New Match", headerShown: true }}
             />
             <Stack.Screen
               name="PastMatches"
