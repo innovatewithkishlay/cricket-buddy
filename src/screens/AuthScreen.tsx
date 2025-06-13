@@ -1,18 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Vibration,
+  TouchableOpacity,
+  Animated,
+  Dimensions,
 } from "react-native";
-import { Text, Button, TextInput, ActivityIndicator } from "react-native-paper";
+import { Text, Button, TextInput } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { auth } from "../firebase/firebase";
+import { BlurView } from "expo-blur";
+
+const { width } = Dimensions.get("window");
 
 export default function AuthScreen() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -21,6 +26,9 @@ export default function AuthScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const ballAnim = useRef(new Animated.Value(0)).current;
 
   const handleAuth = async () => {
     setError("");
@@ -33,6 +41,7 @@ export default function AuthScreen() {
       return;
     }
     setLoading(true);
+    animateBall();
     try {
       if (isSignUp) {
         await createUserWithEmailAndPassword(auth, email.trim(), password);
@@ -46,6 +55,22 @@ export default function AuthScreen() {
     }
   };
 
+  const animateBall = () => {
+    ballAnim.setValue(0);
+    Animated.loop(
+      Animated.timing(ballAnim, {
+        toValue: 1,
+        duration: 900,
+        useNativeDriver: true,
+      })
+    ).start();
+  };
+
+  const ballSpin = ballAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -55,7 +80,7 @@ export default function AuthScreen() {
         <View style={styles.logoContainer}>
           <MaterialCommunityIcons
             name="cricket"
-            size={80}
+            size={70}
             color="#FFD700"
             style={styles.icon}
           />
@@ -77,9 +102,9 @@ export default function AuthScreen() {
                 primary: "#FFD700",
                 onSurface: "#FFFFFF",
                 onSurfaceVariant: "#A0C8FF",
-                background: "rgba(255, 255, 255, 0.08)",
-                surface: "rgba(255, 255, 255, 0.08)",
-                outline: "rgba(160, 200, 255, 0.5)",
+                background: "rgba(255,255,255,0.08)",
+                surface: "rgba(255,255,255,0.08)",
+                outline: "rgba(160,200,255,0.5)",
               },
             }}
             textColor="#FFFFFF"
@@ -90,20 +115,27 @@ export default function AuthScreen() {
             value={password}
             onChangeText={setPassword}
             mode="flat"
-            secureTextEntry
+            secureTextEntry={!showPassword}
             style={[styles.input, styles.inputSpacing]}
             theme={{
               colors: {
                 primary: "#FFD700",
                 onSurface: "#FFFFFF",
                 onSurfaceVariant: "#A0C8FF",
-                background: "rgba(255, 255, 255, 0.08)",
-                surface: "rgba(255, 255, 255, 0.08)",
-                outline: "rgba(160, 200, 255, 0.5)",
+                background: "rgba(255,255,255,0.08)",
+                surface: "rgba(255,255,255,0.08)",
+                outline: "rgba(160,200,255,0.5)",
               },
             }}
             textColor="#FFFFFF"
             left={<TextInput.Icon icon="lock" color="#A0C8FF" />}
+            right={
+              <TextInput.Icon
+                icon={showPassword ? "eye-off" : "eye"}
+                color="#A0C8FF"
+                onPress={() => setShowPassword(!showPassword)}
+              />
+            }
           />
           {isSignUp && (
             <TextInput
@@ -111,20 +143,27 @@ export default function AuthScreen() {
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               mode="flat"
-              secureTextEntry
+              secureTextEntry={!showConfirmPassword}
               style={[styles.input, styles.inputSpacing]}
               theme={{
                 colors: {
                   primary: "#FFD700",
                   onSurface: "#FFFFFF",
                   onSurfaceVariant: "#A0C8FF",
-                  background: "rgba(255, 255, 255, 0.08)",
-                  surface: "rgba(255, 255, 255, 0.08)",
-                  outline: "rgba(160, 200, 255, 0.5)",
+                  background: "rgba(255,255,255,0.08)",
+                  surface: "rgba(255,255,255,0.08)",
+                  outline: "rgba(160,200,255,0.5)",
                 },
               }}
               textColor="#FFFFFF"
               left={<TextInput.Icon icon="lock-check" color="#A0C8FF" />}
+              right={
+                <TextInput.Icon
+                  icon={showConfirmPassword ? "eye-off" : "eye"}
+                  color="#A0C8FF"
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                />
+              }
             />
           )}
 
@@ -136,38 +175,46 @@ export default function AuthScreen() {
             labelStyle={styles.buttonLabel}
             contentStyle={styles.buttonContent}
             buttonColor="#0A6847"
+            disabled={loading}
           >
             {isSignUp ? "Sign Up" : "Sign In"}
           </Button>
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          {loading && (
-            <ActivityIndicator
-              size="large"
-              color="#FFD700"
-              style={styles.loader}
-            />
-          )}
         </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
             {isSignUp ? "Already have an account?" : "Don't have an account?"}
           </Text>
-          <Button
+          <TouchableOpacity
             onPress={() => {
               setIsSignUp((prev) => !prev);
               setError("");
               setPassword("");
               setConfirmPassword("");
             }}
-            mode="text"
-            labelStyle={styles.switchLabel}
           >
-            {isSignUp ? "Sign In" : "Sign Up"}
-          </Button>
+            <Text style={styles.switchLabel}>
+              {isSignUp ? "Sign In" : "Sign Up"}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
+
+      {loading && (
+        <View style={styles.loaderOverlay}>
+          <BlurView intensity={60} style={styles.blurView}>
+            <Animated.View style={{ transform: [{ rotate: ballSpin }] }}>
+              <MaterialCommunityIcons
+                name="cricket"
+                size={64}
+                color="#FFD700"
+              />
+            </Animated.View>
+          </BlurView>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -259,9 +306,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     fontSize: 14,
   },
-  loader: {
-    marginTop: 30,
-    alignSelf: "center",
+  loaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 20,
+  },
+  blurView: {
+    width,
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   footer: {
     flexDirection: "row",
