@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { View, ScrollView, StyleSheet, Alert } from "react-native";
+import { View, ScrollView, StyleSheet, Alert, Platform } from "react-native";
 import { Button, TextInput, Text, Divider, useTheme } from "react-native-paper";
 import { auth, db } from "../firebase/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { StackNavigationProp } from "@react-navigation/stack";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 type Player = { name: string; role: string };
 type RootStackParamList = { Home: undefined };
@@ -88,6 +88,52 @@ export default function NewMatchScreen({ navigation }: Props) {
     } catch (error: unknown) {
       Alert.alert("Error", "Failed to save match: " + getErrorMessage(error));
     }
+  };
+
+  const renderDatePicker = () => {
+    if (Platform.OS === "web") {
+      return (
+        <input
+          type="date"
+          value={date.toISOString().substring(0, 10)}
+          onChange={(e) => {
+            setDate(new Date(e.target.value));
+          }}
+          style={{
+            marginBottom: 16,
+            padding: 8,
+            borderRadius: 8,
+            borderColor: "#ccc",
+            fontSize: 16,
+            width: "100%",
+            maxWidth: 240,
+          }}
+        />
+      );
+    }
+    return (
+      <>
+        <Button
+          mode="outlined"
+          onPress={() => setShowDatePicker(true)}
+          icon="calendar"
+          style={styles.dateButton}
+        >
+          {date.toLocaleDateString()}
+        </Button>
+        {showDatePicker && (
+          <DateTimePicker
+            value={date}
+            mode="date"
+            display="default"
+            onChange={(_, selectedDate) => {
+              setShowDatePicker(false);
+              selectedDate && setDate(selectedDate);
+            }}
+          />
+        )}
+      </>
+    );
   };
 
   return (
@@ -208,26 +254,7 @@ export default function NewMatchScreen({ navigation }: Props) {
       <Divider style={styles.divider} />
 
       <View style={styles.matchDetails}>
-        <Button
-          mode="outlined"
-          onPress={() => setShowDatePicker(true)}
-          icon="calendar"
-          style={styles.dateButton}
-        >
-          {date.toLocaleDateString()}
-        </Button>
-
-        {showDatePicker && (
-          <DateTimePicker
-            value={date}
-            mode="date"
-            display="default"
-            onChange={(_, selectedDate) => {
-              setShowDatePicker(false);
-              selectedDate && setDate(selectedDate);
-            }}
-          />
-        )}
+        {renderDatePicker()}
 
         <TextInput
           label="Location"
