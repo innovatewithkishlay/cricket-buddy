@@ -9,6 +9,7 @@ import {
   Card,
   Chip,
   IconButton,
+  Menu,
 } from "react-native-paper";
 import { auth, db } from "../firebase/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -20,6 +21,8 @@ type Player = { name: string; role: string };
 type Props = {
   navigation: StackNavigationProp<RootStackParamList, "NewMatch">;
 };
+
+const ROLE_OPTIONS = ["Batsman", "Bowler", "All-rounder", "Wicket-keeper"];
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -44,6 +47,10 @@ export default function NewMatchScreen({ navigation }: Props) {
   const [errors, setErrors] = useState<string[]>([]);
   const [tossWinner, setTossWinner] = useState<"A" | "B">("A");
   const [tossDecision, setTossDecision] = useState<"bat" | "field">("bat");
+  const [visibleMenu, setVisibleMenu] = useState<{
+    team: "A" | "B";
+    index: number;
+  } | null>(null);
 
   const validateForm = () => {
     const newErrors = [];
@@ -76,15 +83,25 @@ export default function NewMatchScreen({ navigation }: Props) {
     }
   };
 
-  const handlePlayerChange = (
+  const handlePlayerNameChange = (
     text: string,
     index: number,
-    field: "name" | "role",
     team: "A" | "B"
   ) => {
     const update = team === "A" ? [...playersA] : [...playersB];
-    update[index][field] = text;
+    update[index].name = text;
     team === "A" ? setPlayersA(update) : setPlayersB(update);
+  };
+
+  const handlePlayerRoleChange = (
+    role: string,
+    index: number,
+    team: "A" | "B"
+  ) => {
+    const update = team === "A" ? [...playersA] : [...playersB];
+    update[index].role = role;
+    team === "A" ? setPlayersA(update) : setPlayersB(update);
+    setVisibleMenu(null);
   };
 
   const handleSubmit = async () => {
@@ -129,6 +146,30 @@ export default function NewMatchScreen({ navigation }: Props) {
     >
       {date.toLocaleDateString()}
     </Button>
+  );
+
+  const renderRoleMenu = (team: "A" | "B", index: number) => (
+    <Menu
+      visible={visibleMenu?.team === team && visibleMenu?.index === index}
+      onDismiss={() => setVisibleMenu(null)}
+      anchor={
+        <Button
+          mode="outlined"
+          onPress={() => setVisibleMenu({ team, index })}
+          style={styles.roleButton}
+        >
+          {playersA[index]?.role}
+        </Button>
+      }
+    >
+      {ROLE_OPTIONS.map((role) => (
+        <Menu.Item
+          key={role}
+          title={role}
+          onPress={() => handlePlayerRoleChange(role, index, team)}
+        />
+      ))}
+    </Menu>
   );
 
   return (
@@ -266,9 +307,7 @@ export default function NewMatchScreen({ navigation }: Props) {
                 <TextInput
                   label={`Player ${index + 1} Name *`}
                   value={player.name}
-                  onChangeText={(t) =>
-                    handlePlayerChange(t, index, "name", "A")
-                  }
+                  onChangeText={(t) => handlePlayerNameChange(t, index, "A")}
                   style={styles.playerInput}
                   mode="outlined"
                   error={
@@ -276,15 +315,9 @@ export default function NewMatchScreen({ navigation }: Props) {
                     !player.name.trim()
                   }
                 />
-                <TextInput
-                  label="Role"
-                  value={player.role}
-                  onChangeText={(t) =>
-                    handlePlayerChange(t, index, "role", "A")
-                  }
-                  style={styles.roleInput}
-                  mode="outlined"
-                />
+
+                {renderRoleMenu("A", index)}
+
                 {playersA.length > 1 && (
                   <IconButton
                     icon="close"
@@ -327,9 +360,7 @@ export default function NewMatchScreen({ navigation }: Props) {
                 <TextInput
                   label={`Player ${index + 1} Name *`}
                   value={player.name}
-                  onChangeText={(t) =>
-                    handlePlayerChange(t, index, "name", "B")
-                  }
+                  onChangeText={(t) => handlePlayerNameChange(t, index, "B")}
                   style={styles.playerInput}
                   mode="outlined"
                   error={
@@ -337,15 +368,9 @@ export default function NewMatchScreen({ navigation }: Props) {
                     !player.name.trim()
                   }
                 />
-                <TextInput
-                  label="Role"
-                  value={player.role}
-                  onChangeText={(t) =>
-                    handlePlayerChange(t, index, "role", "B")
-                  }
-                  style={styles.roleInput}
-                  mode="outlined"
-                />
+
+                {renderRoleMenu("B", index)}
+
                 {playersB.length > 1 && (
                   <IconButton
                     icon="close"
@@ -454,8 +479,11 @@ const styles = StyleSheet.create({
   playerInput: {
     flex: 2,
   },
-  roleInput: {
+  roleButton: {
     flex: 1.5,
+    borderColor: "#666",
+    borderWidth: 1,
+    borderRadius: 4,
   },
   removeButton: {
     marginLeft: 4,
