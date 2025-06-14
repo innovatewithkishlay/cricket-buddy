@@ -8,6 +8,7 @@ import VerificationScreen from "../screens/VerificationScreen";
 import NewMatchScreen from "../screens/NewMatchScreen";
 import PastMatchesScreen from "../screens/PastMatchesScreen";
 import ExportScreen from "../screens/ExportScreen";
+import MatchScoringScreen from "../screens/MatchScoringScreen";
 
 export type RootStackParamList = {
   Auth: undefined;
@@ -16,6 +17,7 @@ export type RootStackParamList = {
   NewMatch: undefined;
   PastMatches: undefined;
   Export: undefined;
+  MatchScoring: { matchId: string }; // NEW
 };
 
 interface AppNavigatorProps {
@@ -49,6 +51,11 @@ export default function AppNavigator({ user }: AppNavigatorProps) {
               name="Export"
               component={ExportScreen}
               options={{ title: "Export Data" }}
+            />
+            <Stack.Screen
+              name="MatchScoring"
+              component={MatchScoringScreen}
+              options={{ title: "Live Scoring" }}
             />
           </>
         ) : (
