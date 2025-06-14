@@ -42,7 +42,7 @@ interface Ball {
 
 interface CurrentBallState {
   runs: number;
-  extra?: string; // Single extra instead of array
+  extra?: string;
   isWicket: boolean;
   wicketType?: string;
 }
@@ -60,13 +60,11 @@ const isValidRole = (role: any): role is PlayerRole => {
   return role in roleIcons;
 };
 
-// Define Player interface
 interface Player {
   name: string;
   role: string;
 }
 
-// Player statistics interface
 interface PlayerStats {
   runs: number;
   balls: number;
@@ -74,6 +72,14 @@ interface PlayerStats {
   sixes: number;
   isOut: boolean;
   strikeRate: number;
+}
+
+interface BowlerStats {
+  runs: number;
+  balls: number;
+  maidens: number;
+  wickets: number;
+  economy: number;
 }
 
 export default function MatchScoringScreen({ route }: Props) {
@@ -131,6 +137,27 @@ export default function MatchScoringScreen({ route }: Props) {
             balls: data.currentBalls || 0,
             extras: data.currentExtras || 0,
           });
+        }
+
+        // Initialize partnership
+        if (data.scoreLog && data.scoreLog.length > 0) {
+          const lastWicketIndex = [...data.scoreLog]
+            .reverse()
+            .findIndex((b) => b.isWicket);
+          const ballsSinceWicket =
+            lastWicketIndex >= 0
+              ? data.scoreLog.slice(data.scoreLog.length - lastWicketIndex)
+              : data.scoreLog;
+
+          const partnershipRuns = ballsSinceWicket.reduce(
+            (sum, ball) => sum + ball.runs,
+            0
+          );
+          const partnershipBalls = ballsSinceWicket.filter(
+            (b) => !b.extras?.includes("wd")
+          ).length;
+
+          setPartnership({ runs: partnershipRuns, balls: partnershipBalls });
         }
       }
     };
@@ -195,7 +222,7 @@ export default function MatchScoringScreen({ route }: Props) {
 
   // Calculate bowler statistics from score log
   const bowlerStats = useMemo(() => {
-    const stats: Record<string, any> = {};
+    const stats: Record<string, BowlerStats> = {};
 
     scoreLog.forEach((ball) => {
       // Initialize bowler if not exists
@@ -203,7 +230,7 @@ export default function MatchScoringScreen({ route }: Props) {
         stats[ball.bowler] = {
           runs: 0,
           balls: 0,
-          maidens: 0,
+          maidens: 0, // Will need to calculate maidens separately
           wickets: 0,
           economy: 0,
         };
@@ -216,8 +243,11 @@ export default function MatchScoringScreen({ route }: Props) {
         bowlerStat.balls++;
       }
 
-      // Add runs
+      // Add runs (all runs count against bowler)
       bowlerStat.runs += ball.runs;
+      if (ball.extras?.includes("wd") || ball.extras?.includes("nb")) {
+        bowlerStat.runs += 1; // Penalty runs
+      }
 
       // Count wickets
       if (ball.isWicket) {
@@ -230,6 +260,12 @@ export default function MatchScoringScreen({ route }: Props) {
           ((bowlerStat.runs / bowlerStat.balls) * 6).toFixed(2)
         );
       }
+    });
+
+    // Calculate maidens (overs with no runs)
+    Object.keys(stats).forEach((bowler) => {
+      // This is simplified - would need to track by over
+      stats[bowler].maidens = 0;
     });
 
     return stats;
@@ -246,7 +282,6 @@ export default function MatchScoringScreen({ route }: Props) {
         return {
           ...prev,
           extra: undefined,
-          // Remove penalty runs for wd/nb
           runs:
             extra === "wd" || extra === "nb"
               ? Math.max(0, prev.runs - 1)
@@ -258,7 +293,6 @@ export default function MatchScoringScreen({ route }: Props) {
         return {
           ...prev,
           extra,
-          // Add penalty runs for wd/nb
           runs: extra === "wd" || extra === "nb" ? prev.runs + 1 : prev.runs,
         };
       }
@@ -289,42 +323,54 @@ export default function MatchScoringScreen({ route }: Props) {
       timestamp: new Date().toISOString(),
     };
 
-    setScore((prev) => ({
-      runs: prev.runs + totalRuns,
-      wickets: prev.wickets + (currentBall.isWicket ? 1 : 0),
-      overs: Math.floor((prev.balls + 1) / 6),
-      balls: prev.balls + 1,
-      extras: prev.extras + extraRuns,
-    }));
+    // Update score state
+    const newScore = {
+      runs: score.runs + totalRuns,
+      wickets: score.wickets + (currentBall.isWicket ? 1 : 0),
+      overs: Math.floor((score.balls + 1) / 6),
+      balls: (score.balls + 1) % 6,
+      extras: score.extras + extraRuns,
+    };
 
+    setScore(newScore);
+
+    // Update partnership
+    const newPartnership = currentBall.isWicket
+      ? { runs: 0, balls: 0 }
+      : {
+          runs: partnership.runs + currentBall.runs,
+          balls: partnership.balls + 1,
+        };
+
+    setPartnership(newPartnership);
+
+    // Rotate strike on odd runs
     if (currentBall.runs % 2 !== 0 && !currentBall.isWicket) {
+      [striker, nonStriker] = [nonStriker, striker];
       setStriker(nonStriker);
       setNonStriker(striker);
     }
 
+    // Handle wickets
     if (currentBall.isWicket) {
       const nextBatsman = match.playersA.find(
         (p: any) => p.name !== striker && p.name !== nonStriker
       )?.name;
       if (nextBatsman) setStriker(nextBatsman);
-      setPartnership({ runs: 0, balls: 0 });
-    } else {
-      setPartnership((prev) => ({
-        runs: prev.runs + currentBall.runs,
-        balls: prev.balls + 1,
-      }));
     }
 
+    // Update Firestore
     const matchRef = doc(db, "users", auth.currentUser.uid, "matches", matchId);
     await updateDoc(matchRef, {
       scoreLog: arrayUnion(newBall),
-      currentScore: score.runs + totalRuns,
-      currentWickets: score.wickets + (currentBall.isWicket ? 1 : 0),
-      currentOvers: Math.floor((score.balls + 1) / 6),
-      currentBalls: (score.balls + 1) % 6,
-      currentExtras: score.extras + extraRuns,
+      currentScore: newScore.runs,
+      currentWickets: newScore.wickets,
+      currentOvers: newScore.overs,
+      currentBalls: newScore.balls,
+      currentExtras: newScore.extras,
     });
 
+    // Update local state
     setScoreLog((prev) => [...prev, newBall]);
     setCurrentBall({
       runs: 0,
@@ -477,6 +523,10 @@ export default function MatchScoringScreen({ route }: Props) {
     wickets: 0,
     economy: 0,
   };
+
+  // Get balls for current over
+  const currentOver = Math.floor(score.balls / 6) + 1;
+  const currentOverBalls = scoreLog.filter((ball) => ball.over === currentOver);
 
   return (
     <View
@@ -646,16 +696,14 @@ export default function MatchScoringScreen({ route }: Props) {
             {/* Over Progress */}
             <Card style={styles.overCard} mode="contained">
               <Card.Title
-                title={`Over ${Math.floor(score.balls / 6) + 1}`}
+                title={`Over ${currentOver}`}
                 titleVariant="titleMedium"
                 left={() => <Icon name="progress-clock" size={24} />}
               />
               <Card.Content>
                 <View style={styles.overBalls}>
                   {[...Array(6)].map((_, i) => {
-                    const ballIndex = score.balls - (6 - i);
-                    const ballData =
-                      ballIndex >= 0 ? scoreLog[ballIndex] : null;
+                    const ballData = currentOverBalls[i] || null;
 
                     return (
                       <View
