@@ -117,7 +117,8 @@ export default function MatchScoringScreen({ route }: Props) {
     }));
 
     if (newBall.runs % 2 !== 0) {
-      [striker, nonStriker] = [nonStriker, striker];
+      setStriker(nonStriker);
+      setNonStriker(striker);
     }
 
     if (newBall.isWicket) {
