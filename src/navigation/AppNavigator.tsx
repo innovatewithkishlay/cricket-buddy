@@ -17,7 +17,7 @@ export type RootStackParamList = {
   NewMatch: undefined;
   PastMatches: undefined;
   Export: undefined;
-  MatchScoring: { matchId: string }; // NEW
+  MatchScoring: { matchId: string };
 };
 
 interface AppNavigatorProps {

@@ -139,22 +139,21 @@ export default function MatchScoringScreen({ route }: Props) {
           });
         }
 
-        // Initialize partnership
         if (data.scoreLog && data.scoreLog.length > 0) {
           const lastWicketIndex = [...data.scoreLog]
             .reverse()
             .findIndex((b) => b.isWicket);
           const ballsSinceWicket =
             lastWicketIndex >= 0
-              ? data.scoreLog.slice(data.scoreLog.length - lastWicketIndex)
+              ? data.scoreLog.slice(-(lastWicketIndex + 1))
               : data.scoreLog;
 
           const partnershipRuns = ballsSinceWicket.reduce(
-            (sum, ball) => sum + ball.runs,
+            (sum: number, ball: Ball) => sum + ball.runs,
             0
           );
           const partnershipBalls = ballsSinceWicket.filter(
-            (b) => !b.extras?.includes("wd")
+            (b: Ball) => !b.extras?.includes("wd")
           ).length;
 
           setPartnership({ runs: partnershipRuns, balls: partnershipBalls });
@@ -171,12 +170,10 @@ export default function MatchScoringScreen({ route }: Props) {
     }
   }, [score]);
 
-  // Calculate batsman statistics from score log
   const batsmanStats = useMemo(() => {
     const stats: Record<string, PlayerStats> = {};
 
     scoreLog.forEach((ball) => {
-      // Initialize player if not exists
       if (!stats[ball.batsman]) {
         stats[ball.batsman] = {
           runs: 0,
@@ -190,26 +187,20 @@ export default function MatchScoringScreen({ route }: Props) {
 
       const playerStat = stats[ball.batsman];
 
-      // Only count valid balls (not extras that don't count against batsman)
       if (!ball.extras?.includes("wd") && !ball.extras?.includes("nb")) {
         playerStat.balls++;
 
-        // Add runs if not extras that don't credit batsman
         if (!ball.extras?.includes("b") && !ball.extras?.includes("lb")) {
           playerStat.runs += ball.runs;
-
-          // Count boundaries
           if (ball.runs === 4) playerStat.fours++;
           if (ball.runs === 6) playerStat.sixes++;
         }
       }
 
-      // Mark as out if wicket
       if (ball.isWicket && ball.batsman === ball.batsman) {
         playerStat.isOut = true;
       }
 
-      // Calculate strike rate
       if (playerStat.balls > 0) {
         playerStat.strikeRate = Number(
           ((playerStat.runs / playerStat.balls) * 100).toFixed(2)
@@ -220,17 +211,15 @@ export default function MatchScoringScreen({ route }: Props) {
     return stats;
   }, [scoreLog]);
 
-  // Calculate bowler statistics from score log
   const bowlerStats = useMemo(() => {
     const stats: Record<string, BowlerStats> = {};
 
     scoreLog.forEach((ball) => {
-      // Initialize bowler if not exists
       if (!stats[ball.bowler]) {
         stats[ball.bowler] = {
           runs: 0,
           balls: 0,
-          maidens: 0, // Will need to calculate maidens separately
+          maidens: 0,
           wickets: 0,
           economy: 0,
         };
@@ -238,23 +227,19 @@ export default function MatchScoringScreen({ route }: Props) {
 
       const bowlerStat = stats[ball.bowler];
 
-      // Count balls (except wides)
       if (!ball.extras?.includes("wd")) {
         bowlerStat.balls++;
       }
 
-      // Add runs (all runs count against bowler)
       bowlerStat.runs += ball.runs;
       if (ball.extras?.includes("wd") || ball.extras?.includes("nb")) {
-        bowlerStat.runs += 1; // Penalty runs
+        bowlerStat.runs += 1;
       }
 
-      // Count wickets
       if (ball.isWicket) {
         bowlerStat.wickets++;
       }
 
-      // Calculate economy
       if (bowlerStat.balls > 0) {
         bowlerStat.economy = Number(
           ((bowlerStat.runs / bowlerStat.balls) * 6).toFixed(2)
@@ -262,9 +247,7 @@ export default function MatchScoringScreen({ route }: Props) {
       }
     });
 
-    // Calculate maidens (overs with no runs)
     Object.keys(stats).forEach((bowler) => {
-      // This is simplified - would need to track by over
       stats[bowler].maidens = 0;
     });
 
@@ -277,7 +260,6 @@ export default function MatchScoringScreen({ route }: Props) {
 
   const toggleExtra = (extra: string) => {
     setCurrentBall((prev) => {
-      // If clicking the same extra, remove it
       if (prev.extra === extra) {
         return {
           ...prev,
@@ -287,9 +269,7 @@ export default function MatchScoringScreen({ route }: Props) {
               ? Math.max(0, prev.runs - 1)
               : prev.runs,
         };
-      }
-      // Otherwise, set the new extra
-      else {
+      } else {
         return {
           ...prev,
           extra,
@@ -323,7 +303,6 @@ export default function MatchScoringScreen({ route }: Props) {
       timestamp: new Date().toISOString(),
     };
 
-    // Update score state
     const newScore = {
       runs: score.runs + totalRuns,
       wickets: score.wickets + (currentBall.isWicket ? 1 : 0),
@@ -334,7 +313,6 @@ export default function MatchScoringScreen({ route }: Props) {
 
     setScore(newScore);
 
-    // Update partnership
     const newPartnership = currentBall.isWicket
       ? { runs: 0, balls: 0 }
       : {
@@ -344,14 +322,13 @@ export default function MatchScoringScreen({ route }: Props) {
 
     setPartnership(newPartnership);
 
-    // Rotate strike on odd runs
     if (currentBall.runs % 2 !== 0 && !currentBall.isWicket) {
-      [striker, nonStriker] = [nonStriker, striker];
-      setStriker(nonStriker);
-      setNonStriker(striker);
+      const newStriker = nonStriker;
+      const newNonStriker = striker;
+      setStriker(newStriker);
+      setNonStriker(newNonStriker);
     }
 
-    // Handle wickets
     if (currentBall.isWicket) {
       const nextBatsman = match.playersA.find(
         (p: any) => p.name !== striker && p.name !== nonStriker
@@ -359,7 +336,6 @@ export default function MatchScoringScreen({ route }: Props) {
       if (nextBatsman) setStriker(nextBatsman);
     }
 
-    // Update Firestore
     const matchRef = doc(db, "users", auth.currentUser.uid, "matches", matchId);
     await updateDoc(matchRef, {
       scoreLog: arrayUnion(newBall),
@@ -370,7 +346,6 @@ export default function MatchScoringScreen({ route }: Props) {
       currentExtras: newScore.extras,
     });
 
-    // Update local state
     setScoreLog((prev) => [...prev, newBall]);
     setCurrentBall({
       runs: 0,
@@ -402,12 +377,12 @@ export default function MatchScoringScreen({ route }: Props) {
   };
 
   const getBallColor = (ball: Ball) => {
-    if (ball.isWicket) return "#EF9A9A"; // Red for wicket
-    if (ball.runs === 4) return "#90CAF9"; // Blue for four
-    if (ball.runs === 6) return "#A5D6A7"; // Green for six
-    if (ball.extras?.length) return "#FFF59D"; // Yellow for extras
-    if (ball.runs === 0) return "#E0E0E0"; // Gray for dot
-    return "#F5F5F5"; // Default
+    if (ball.isWicket) return "#EF9A9A";
+    if (ball.runs === 4) return "#90CAF9";
+    if (ball.runs === 6) return "#A5D6A7";
+    if (ball.extras?.length) return "#FFF59D";
+    if (ball.runs === 0) return "#E0E0E0";
+    return "#F5F5F5";
   };
 
   const renderPlayerScorecard = (
@@ -524,7 +499,6 @@ export default function MatchScoringScreen({ route }: Props) {
     economy: 0,
   };
 
-  // Get balls for current over
   const currentOver = Math.floor(score.balls / 6) + 1;
   const currentOverBalls = scoreLog.filter((ball) => ball.over === currentOver);
 
@@ -533,7 +507,6 @@ export default function MatchScoringScreen({ route }: Props) {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Match Header */}
         <Card style={styles.headerCard} mode="contained">
           <Card.Content>
             <View style={styles.headerRow}>
@@ -602,7 +575,6 @@ export default function MatchScoringScreen({ route }: Props) {
           </Card.Content>
         </Card>
 
-        {/* Tabs */}
         <View style={styles.tabContainer}>
           <Button
             mode={activeTab === "batting" ? "contained" : "outlined"}
@@ -627,7 +599,6 @@ export default function MatchScoringScreen({ route }: Props) {
           </Button>
         </View>
 
-        {/* Batting/Bowling Cards */}
         {activeTab === "batting" && (
           <>
             <Card style={styles.batsmenCard} mode="contained">
@@ -693,7 +664,6 @@ export default function MatchScoringScreen({ route }: Props) {
               </Card.Content>
             </Card>
 
-            {/* Over Progress */}
             <Card style={styles.overCard} mode="contained">
               <Card.Title
                 title={`Over ${currentOver}`}
@@ -732,7 +702,6 @@ export default function MatchScoringScreen({ route }: Props) {
               </Card.Content>
             </Card>
 
-            {/* Scoring Controls - Only in Batting Tab */}
             <Card style={styles.controlsCard} mode="contained">
               <Card.Title title="Record Ball" titleVariant="titleMedium" />
               <Card.Content style={styles.controlsContent}>
@@ -950,7 +919,6 @@ export default function MatchScoringScreen({ route }: Props) {
           </Card>
         )}
 
-        {/* Team Modals */}
         <Portal>
           <Modal
             visible={showTeamA}

@@ -87,7 +87,6 @@ export default function HomeScreen({ navigation }: Props) {
           </Card>
         </View>
 
-        {/* Stats section can be made dynamic in the next step */}
         <View style={styles.statsSection}>
           <Text
             variant="titleMedium"
