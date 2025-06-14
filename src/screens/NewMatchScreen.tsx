@@ -5,10 +5,12 @@ import { auth, db } from "../firebase/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { StackNavigationProp } from "@react-navigation/stack";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { RootStackParamList } from "../navigation/AppNavigator"; // Import correct types
 
 type Player = { name: string; role: string };
-type RootStackParamList = { Home: undefined };
-type Props = { navigation: StackNavigationProp<RootStackParamList, "Home"> };
+type Props = {
+  navigation: StackNavigationProp<RootStackParamList, "NewMatch">; // Fixed type
+};
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -68,8 +70,6 @@ export default function NewMatchScreen({ navigation }: Props) {
   };
 
   const handleSubmit = async () => {
-    alert("Button pressed");
-    console.log("Button pressed");
     if (!validateForm()) return;
     if (!auth.currentUser) {
       alert("No current user");
@@ -91,10 +91,10 @@ export default function NewMatchScreen({ navigation }: Props) {
           status: "upcoming",
         }
       );
-      alert("Match created: " + docRef.id);
-      navigation.navigate("Home");
+      // Navigate to MatchScoring screen with matchId
+      navigation.navigate("MatchScoring", { matchId: docRef.id });
     } catch (error: unknown) {
-      alert("Error: " + getErrorMessage(error));
+      Alert.alert("Error", "Failed to save match: " + getErrorMessage(error));
       console.log(error);
     }
   };

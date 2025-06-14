@@ -49,12 +49,10 @@ export default function MatchScoringScreen({ route }: Props) {
       timestamp: new Date().toISOString(),
     };
     setScoreLog([...scoreLog, ballData]);
-    // Optionally, update Firestore with each ball
     const matchRef = doc(db, "users", auth.currentUser.uid, "matches", matchId);
     await updateDoc(matchRef, {
       scoreLog: arrayUnion(ballData),
     });
-    // Reset for next ball
     setRuns("");
     setWicket(false);
     setExtras("");
