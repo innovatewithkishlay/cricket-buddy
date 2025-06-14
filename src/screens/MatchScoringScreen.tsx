@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, ScrollView, StyleSheet, Alert } from "react-native";
+import { View, ScrollView, StyleSheet } from "react-native";
 import {
   Text,
   Button,
@@ -33,6 +33,13 @@ interface Ball {
   timestamp: string;
 }
 
+interface CurrentBallState {
+  runs: number;
+  extras: string[];
+  isWicket: boolean;
+  wicketType?: string;
+}
+
 export default function MatchScoringScreen({ route }: Props) {
   const theme = useTheme();
   const { matchId } = route.params;
@@ -43,9 +50,11 @@ export default function MatchScoringScreen({ route }: Props) {
     overs: 0,
     balls: 0,
   });
-  const [currentBall, setCurrentBall] = useState({
+  const [currentBall, setCurrentBall] = useState<CurrentBallState>({
     runs: 0,
-    extras: [] as string[],
+    extras: [],
+    isWicket: false,
+    wicketType: undefined,
   });
   const [showWicketMenu, setShowWicketMenu] = useState(false);
   const [striker, setStriker] = useState("");
@@ -77,9 +86,6 @@ export default function MatchScoringScreen({ route }: Props) {
 
   const handleRuns = (runs: number) => {
     setCurrentBall((prev) => ({ ...prev, runs }));
-    if (runs === 4 || runs === 6) {
-      setTimeout(() => setCurrentBall((prev) => ({ ...prev, runs })), 200);
-    }
   };
 
   const addExtra = (extra: string) => {
@@ -136,7 +142,13 @@ export default function MatchScoringScreen({ route }: Props) {
       currentOvers: score.overs + (newBall.ball === 6 ? 1 : 0),
     });
 
-    setCurrentBall({ runs: 0, extras: [] });
+    setScoreLog((prev) => [...prev, newBall]);
+    setCurrentBall({
+      runs: 0,
+      extras: [],
+      isWicket: false,
+      wicketType: undefined,
+    });
   };
 
   if (!match) {
@@ -168,7 +180,7 @@ export default function MatchScoringScreen({ route }: Props) {
             </Text>
             <Text>
               Run Rate:{" "}
-              {(score.runs / (score.overs + score.balls / 6)).toFixed(1)}
+              {(score.runs / (score.overs + (score.balls % 6) / 6)).toFixed(1)}
             </Text>
           </View>
         </Card.Content>
