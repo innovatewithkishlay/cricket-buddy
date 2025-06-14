@@ -68,25 +68,34 @@ export default function NewMatchScreen({ navigation }: Props) {
   };
 
   const handleSubmit = async () => {
+    alert("Button pressed");
+    console.log("Button pressed");
     if (!validateForm()) return;
-    if (!auth.currentUser) return;
-
+    if (!auth.currentUser) {
+      alert("No current user");
+      return;
+    }
     try {
-      await addDoc(collection(db, "users", auth.currentUser.uid, "matches"), {
-        matchTitle,
-        teamA,
-        teamB,
-        date: date.toISOString(),
-        location,
-        overs: Number(overs) || 20,
-        playersA,
-        playersB,
-        createdAt: serverTimestamp(),
-        status: "upcoming",
-      });
+      const docRef = await addDoc(
+        collection(db, "users", auth.currentUser.uid, "matches"),
+        {
+          matchTitle,
+          teamA,
+          teamB,
+          date: date.toISOString(),
+          location,
+          overs: Number(overs) || 20,
+          playersA,
+          playersB,
+          createdAt: serverTimestamp(),
+          status: "upcoming",
+        }
+      );
+      alert("Match created: " + docRef.id);
       navigation.navigate("Home");
     } catch (error: unknown) {
-      Alert.alert("Error", "Failed to save match: " + getErrorMessage(error));
+      alert("Error: " + getErrorMessage(error));
+      console.log(error);
     }
   };
 
