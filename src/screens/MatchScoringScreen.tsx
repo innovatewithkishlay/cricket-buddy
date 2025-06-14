@@ -60,6 +60,12 @@ const isValidRole = (role: any): role is PlayerRole => {
   return role in roleIcons;
 };
 
+// Define Player interface
+interface Player {
+  name: string;
+  role: string;
+}
+
 export default function MatchScoringScreen({ route }: Props) {
   const theme = useTheme();
   const { matchId } = route.params;
@@ -232,22 +238,14 @@ export default function MatchScoringScreen({ route }: Props) {
     return "account";
   };
 
-  if (!match) {
-    return (
-      <View style={styles.centered}>
-        <Text>Loading match...</Text>
-      </View>
-    );
-  }
-
-  const totalBalls = match.overs * 6;
-  const ballsBowled = score.overs * 6 + score.balls;
-  const overProgress = ballsBowled / totalBalls;
-
-  const renderPlayerScorecard = (player: any, isBatting: boolean) => (
+  const renderPlayerScorecard = (
+    player: Player,
+    team: "A" | "B",
+    isBatting: boolean
+  ) => (
     <View key={player.name} style={styles.playerScoreRow}>
       <View style={styles.playerInfo}>
-        <Avatar.Icon size={36} icon={getPlayerRoleIcon(player.name, "A")} />
+        <Avatar.Icon size={36} icon={getPlayerRoleIcon(player.name, team)} />
         <View style={styles.playerNameContainer}>
           <Text style={player.name === striker ? styles.striker : {}}>
             {player.name}
@@ -270,6 +268,18 @@ export default function MatchScoringScreen({ route }: Props) {
       )}
     </View>
   );
+
+  if (!match) {
+    return (
+      <View style={styles.centered}>
+        <Text>Loading match...</Text>
+      </View>
+    );
+  }
+
+  const totalBalls = match.overs * 6;
+  const ballsBowled = score.overs * 6 + score.balls;
+  const overProgress = ballsBowled / totalBalls;
 
   return (
     <View
@@ -505,7 +515,9 @@ export default function MatchScoringScreen({ route }: Props) {
 
               {match.playersA
                 .slice(0, 3)
-                .map((player) => renderPlayerScorecard(player, true))}
+                .map((player: Player) =>
+                  renderPlayerScorecard(player, "A", true)
+                )}
 
               <View style={styles.scorecardHeader}>
                 <Text style={styles.scorecardTitle}>Bowling</Text>
@@ -521,7 +533,7 @@ export default function MatchScoringScreen({ route }: Props) {
                 <Text style={styles.statsHeaderText}>ER</Text>
               </View>
 
-              {match.playersB.slice(0, 2).map((player) => (
+              {match.playersB.slice(0, 2).map((player: Player) => (
                 <View key={player.name} style={styles.playerScoreRow}>
                   <View style={styles.playerInfo}>
                     <Avatar.Icon
@@ -724,8 +736,8 @@ export default function MatchScoringScreen({ route }: Props) {
                   <Text style={styles.modalHeaderText}>SR</Text>
                 </View>
 
-                {match.playersA.map((player) =>
-                  renderPlayerScorecard(player, true)
+                {match.playersA.map((player: Player) =>
+                  renderPlayerScorecard(player, "A", true)
                 )}
               </Card.Content>
             </Card>
@@ -757,7 +769,7 @@ export default function MatchScoringScreen({ route }: Props) {
                   <Text style={styles.modalHeaderText}>ER</Text>
                 </View>
 
-                {match.playersB.map((player) => (
+                {match.playersB.map((player: Player) => (
                   <View key={player.name} style={styles.playerScoreRow}>
                     <View style={styles.playerInfo}>
                       <Avatar.Icon
