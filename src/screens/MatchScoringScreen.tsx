@@ -44,11 +44,17 @@ interface CurrentBallState {
   wicketType?: string;
 }
 
-const roleIcons = {
+type PlayerRole = "Batsman" | "Bowler" | "All-rounder" | "Wicket-keeper";
+
+const roleIcons: Record<PlayerRole, string> = {
   Batsman: "account",
   Bowler: "bowl",
   "All-rounder": "all-inclusive",
   "Wicket-keeper": "glasses",
+};
+
+const isValidRole = (role: any): role is PlayerRole => {
+  return role in roleIcons;
 };
 
 export default function MatchScoringScreen({ route }: Props) {
@@ -209,6 +215,17 @@ export default function MatchScoringScreen({ route }: Props) {
     });
   };
 
+  const getPlayerRoleIcon = (name: string, team: "A" | "B") => {
+    const players = team === "A" ? match.playersA : match.playersB;
+    const player = players.find((p: any) => p.name === name);
+    const role = player?.role;
+
+    if (role && isValidRole(role)) {
+      return roleIcons[role];
+    }
+    return "account";
+  };
+
   if (!match) {
     return (
       <View style={styles.centered}>
@@ -220,12 +237,6 @@ export default function MatchScoringScreen({ route }: Props) {
   const totalBalls = match.overs * 6;
   const ballsBowled = score.overs * 6 + score.balls;
   const overProgress = ballsBowled / totalBalls;
-
-  const getPlayerRoleIcon = (name: string, team: "A" | "B") => {
-    const players = team === "A" ? match.playersA : match.playersB;
-    const player = players.find((p: any) => p.name === name);
-    return roleIcons[player?.role] || "account";
-  };
 
   return (
     <View
