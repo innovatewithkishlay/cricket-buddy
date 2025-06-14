@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { View, ScrollView, StyleSheet, Alert, Dimensions } from "react-native";
 import {
   Text,
@@ -42,7 +42,7 @@ interface Ball {
 
 interface CurrentBallState {
   runs: number;
-  extras: string[];
+  extra?: string; // Single extra instead of array
   isWicket: boolean;
   wicketType?: string;
 }
@@ -66,6 +66,16 @@ interface Player {
   role: string;
 }
 
+// Player statistics interface
+interface PlayerStats {
+  runs: number;
+  balls: number;
+  fours: number;
+  sixes: number;
+  isOut: boolean;
+  strikeRate: number;
+}
+
 export default function MatchScoringScreen({ route }: Props) {
   const theme = useTheme();
   const { matchId } = route.params;
@@ -79,7 +89,7 @@ export default function MatchScoringScreen({ route }: Props) {
   });
   const [currentBall, setCurrentBall] = useState<CurrentBallState>({
     runs: 0,
-    extras: [],
+    extra: undefined,
     isWicket: false,
     wicketType: undefined,
   });
@@ -111,6 +121,7 @@ export default function MatchScoringScreen({ route }: Props) {
         setStriker(data.playersA[0]?.name || "");
         setNonStriker(data.playersA[1]?.name || "");
         setCurrentBowler(data.playersB[0]?.name || "");
+        setScoreLog(data.scoreLog || []);
 
         if (data.currentScore) {
           setScore({
@@ -133,27 +144,125 @@ export default function MatchScoringScreen({ route }: Props) {
     }
   }, [score]);
 
+  // Calculate batsman statistics from score log
+  const batsmanStats = useMemo(() => {
+    const stats: Record<string, PlayerStats> = {};
+
+    scoreLog.forEach((ball) => {
+      // Initialize player if not exists
+      if (!stats[ball.batsman]) {
+        stats[ball.batsman] = {
+          runs: 0,
+          balls: 0,
+          fours: 0,
+          sixes: 0,
+          isOut: false,
+          strikeRate: 0,
+        };
+      }
+
+      const playerStat = stats[ball.batsman];
+
+      // Only count valid balls (not extras that don't count against batsman)
+      if (!ball.extras?.includes("wd") && !ball.extras?.includes("nb")) {
+        playerStat.balls++;
+
+        // Add runs if not extras that don't credit batsman
+        if (!ball.extras?.includes("b") && !ball.extras?.includes("lb")) {
+          playerStat.runs += ball.runs;
+
+          // Count boundaries
+          if (ball.runs === 4) playerStat.fours++;
+          if (ball.runs === 6) playerStat.sixes++;
+        }
+      }
+
+      // Mark as out if wicket
+      if (ball.isWicket && ball.batsman === ball.batsman) {
+        playerStat.isOut = true;
+      }
+
+      // Calculate strike rate
+      if (playerStat.balls > 0) {
+        playerStat.strikeRate = Number(
+          ((playerStat.runs / playerStat.balls) * 100).toFixed(2)
+        );
+      }
+    });
+
+    return stats;
+  }, [scoreLog]);
+
+  // Calculate bowler statistics from score log
+  const bowlerStats = useMemo(() => {
+    const stats: Record<string, any> = {};
+
+    scoreLog.forEach((ball) => {
+      // Initialize bowler if not exists
+      if (!stats[ball.bowler]) {
+        stats[ball.bowler] = {
+          runs: 0,
+          balls: 0,
+          maidens: 0,
+          wickets: 0,
+          economy: 0,
+        };
+      }
+
+      const bowlerStat = stats[ball.bowler];
+
+      // Count balls (except wides)
+      if (!ball.extras?.includes("wd")) {
+        bowlerStat.balls++;
+      }
+
+      // Add runs
+      bowlerStat.runs += ball.runs;
+
+      // Count wickets
+      if (ball.isWicket) {
+        bowlerStat.wickets++;
+      }
+
+      // Calculate economy
+      if (bowlerStat.balls > 0) {
+        bowlerStat.economy = Number(
+          ((bowlerStat.runs / bowlerStat.balls) * 6).toFixed(2)
+        );
+      }
+    });
+
+    return stats;
+  }, [scoreLog]);
+
   const handleRuns = (runs: number) => {
     setCurrentBall((prev) => ({ ...prev, runs }));
   };
 
-  const addExtra = (extra: string) => {
-    setCurrentBall((prev) => ({
-      ...prev,
-      extras: [...new Set([...prev.extras, extra])],
-      runs: extra === "wd" || extra === "nb" ? prev.runs + 1 : prev.runs,
-    }));
-  };
-
-  const removeExtra = (extra: string) => {
-    setCurrentBall((prev) => ({
-      ...prev,
-      extras: prev.extras.filter((e) => e !== extra),
-      runs:
-        extra === "wd" || extra === "nb"
-          ? Math.max(0, prev.runs - 1)
-          : prev.runs,
-    }));
+  const toggleExtra = (extra: string) => {
+    setCurrentBall((prev) => {
+      // If clicking the same extra, remove it
+      if (prev.extra === extra) {
+        return {
+          ...prev,
+          extra: undefined,
+          // Remove penalty runs for wd/nb
+          runs:
+            extra === "wd" || extra === "nb"
+              ? Math.max(0, prev.runs - 1)
+              : prev.runs,
+        };
+      }
+      // Otherwise, set the new extra
+      else {
+        return {
+          ...prev,
+          extra,
+          // Add penalty runs for wd/nb
+          runs: extra === "wd" || extra === "nb" ? prev.runs + 1 : prev.runs,
+        };
+      }
+    });
   };
 
   const recordWicket = (type: string) => {
@@ -165,9 +274,7 @@ export default function MatchScoringScreen({ route }: Props) {
     if (!auth.currentUser || !match) return;
 
     const extraRuns =
-      currentBall.extras.includes("wd") || currentBall.extras.includes("nb")
-        ? 1
-        : 0;
+      currentBall.extra === "wd" || currentBall.extra === "nb" ? 1 : 0;
     const totalRuns = currentBall.runs + extraRuns;
 
     const newBall: Ball = {
@@ -178,7 +285,7 @@ export default function MatchScoringScreen({ route }: Props) {
       bowler: currentBowler,
       isWicket: currentBall.isWicket,
       wicketType: currentBall.wicketType,
-      extras: currentBall.extras,
+      extras: currentBall.extra ? [currentBall.extra] : undefined,
       timestamp: new Date().toISOString(),
     };
 
@@ -221,7 +328,7 @@ export default function MatchScoringScreen({ route }: Props) {
     setScoreLog((prev) => [...prev, newBall]);
     setCurrentBall({
       runs: 0,
-      extras: [],
+      extra: undefined,
       isWicket: false,
       wicketType: undefined,
     });
@@ -238,44 +345,102 @@ export default function MatchScoringScreen({ route }: Props) {
     return "account";
   };
 
+  const formatBallResult = (ball: Ball) => {
+    if (ball.isWicket) return "W";
+    if (ball.extras?.includes("wd")) return "WD";
+    if (ball.extras?.includes("nb")) return "NB";
+    if (ball.extras?.includes("b")) return "B";
+    if (ball.extras?.includes("lb")) return "LB";
+    if (ball.runs === 0) return "•";
+    return ball.runs.toString();
+  };
+
+  const getBallColor = (ball: Ball) => {
+    if (ball.isWicket) return "#EF9A9A"; // Red for wicket
+    if (ball.runs === 4) return "#90CAF9"; // Blue for four
+    if (ball.runs === 6) return "#A5D6A7"; // Green for six
+    if (ball.extras?.length) return "#FFF59D"; // Yellow for extras
+    if (ball.runs === 0) return "#E0E0E0"; // Gray for dot
+    return "#F5F5F5"; // Default
+  };
+
   const renderPlayerScorecard = (
     player: Player,
     team: "A" | "B",
     isBatting: boolean
-  ) => (
-    <View key={player.name} style={styles.playerScoreRow}>
-      <View style={styles.playerInfo}>
-        <Avatar.Icon size={36} icon={getPlayerRoleIcon(player.name, team)} />
-        <View style={styles.playerNameContainer}>
-          <Text style={player.name === striker ? styles.striker : {}}>
-            {player.name}
-            {player.name === striker && " ✳️"}
+  ) => {
+    const stats = batsmanStats[player.name] || {
+      runs: 0,
+      balls: 0,
+      fours: 0,
+      sixes: 0,
+      isOut: false,
+      strikeRate: 0,
+    };
+
+    return (
+      <View key={player.name} style={styles.playerScoreRow}>
+        <View style={styles.playerInfo}>
+          <Avatar.Icon size={36} icon={getPlayerRoleIcon(player.name, team)} />
+          <View style={styles.playerNameContainer}>
+            <Text style={player.name === striker ? styles.striker : {}}>
+              {player.name}
+              {player.name === striker && " ✳️"}
+              {stats.isOut && " 🏏"}
+            </Text>
+            <Text style={styles.playerRole}>{player.role}</Text>
+          </View>
+        </View>
+
+        {isBatting && (
+          <View style={styles.statsContainer}>
+            <Text style={styles.playerStatValue}>{stats.runs}</Text>
+            <Text style={styles.playerStatValue}>{stats.balls}</Text>
+            <Text style={styles.playerStatValue}>{stats.fours}</Text>
+            <Text style={styles.playerStatValue}>{stats.sixes}</Text>
+            <Text style={[styles.playerStatValue, styles.strikeRate]}>
+              {stats.strikeRate}
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderBowlerScorecard = (player: Player) => {
+    const stats = bowlerStats[player.name] || {
+      runs: 0,
+      balls: 0,
+      maidens: 0,
+      wickets: 0,
+      economy: 0,
+    };
+
+    const overs = Math.floor(stats.balls / 6);
+    const balls = stats.balls % 6;
+
+    return (
+      <View key={player.name} style={styles.playerScoreRow}>
+        <View style={styles.playerInfo}>
+          <Avatar.Icon size={36} icon={getPlayerRoleIcon(player.name, "B")} />
+          <View style={styles.playerNameContainer}>
+            <Text>{player.name}</Text>
+            <Text style={styles.playerRole}>{player.role}</Text>
+          </View>
+        </View>
+
+        <View style={styles.statsContainer}>
+          <Text style={styles.playerStatValue}>{`${overs}.${balls}`}</Text>
+          <Text style={styles.playerStatValue}>{stats.maidens}</Text>
+          <Text style={styles.playerStatValue}>{stats.runs}</Text>
+          <Text style={styles.playerStatValue}>{stats.wickets}</Text>
+          <Text style={[styles.playerStatValue, styles.strikeRate]}>
+            {stats.economy}
           </Text>
-          <Text style={styles.playerRole}>{player.role}</Text>
         </View>
       </View>
-
-      {isBatting && (
-        <View style={styles.statsContainer}>
-          <Text style={styles.playerStatValue}>
-            {Math.floor(Math.random() * 30)}
-          </Text>
-          <Text style={styles.playerStatValue}>
-            {Math.floor(Math.random() * 20)}
-          </Text>
-          <Text style={styles.playerStatValue}>
-            {Math.floor(Math.random() * 5)}
-          </Text>
-          <Text style={styles.playerStatValue}>
-            {Math.floor(Math.random() * 3)}
-          </Text>
-          <Text style={[styles.playerStatValue, styles.strikeRate]}>
-            {Math.floor(Math.random() * 150 + 50).toFixed(0)}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
+    );
+  };
 
   if (!match) {
     return (
@@ -288,6 +453,30 @@ export default function MatchScoringScreen({ route }: Props) {
   const totalBalls = match.overs * 6;
   const ballsBowled = score.overs * 6 + score.balls;
   const overProgress = ballsBowled / totalBalls;
+
+  const strikerStats = batsmanStats[striker] || {
+    runs: 0,
+    balls: 0,
+    fours: 0,
+    sixes: 0,
+    strikeRate: 0,
+  };
+
+  const nonStrikerStats = batsmanStats[nonStriker] || {
+    runs: 0,
+    balls: 0,
+    fours: 0,
+    sixes: 0,
+    strikeRate: 0,
+  };
+
+  const bowlerStatsCurrent = bowlerStats[currentBowler] || {
+    runs: 0,
+    balls: 0,
+    maidens: 0,
+    wickets: 0,
+    economy: 0,
+  };
 
   return (
     <View
@@ -390,54 +579,207 @@ export default function MatchScoringScreen({ route }: Props) {
 
         {/* Batting/Bowling Cards */}
         {activeTab === "batting" && (
-          <Card style={styles.batsmenCard} mode="contained">
-            <Card.Title
-              title="Batting"
-              titleVariant="titleMedium"
-              left={() => <Icon name="cricket" size={24} />}
-              right={() => (
-                <IconButton
-                  icon="account-group"
-                  onPress={() => setShowTeamA(true)}
-                />
-              )}
-            />
-            <Card.Content>
-              <View style={styles.playerInfo}>
-                <Avatar.Icon size={40} icon={getPlayerRoleIcon(striker, "A")} />
-                <View style={styles.playerDetails}>
-                  <Text variant="bodyLarge" style={styles.striker}>
-                    {striker} ✳️
-                  </Text>
-                  <Text variant="bodyMedium" style={styles.playerRole}>
-                    {match.playersA.find((p: any) => p.name === striker)?.role}
-                  </Text>
-                  <View style={styles.playerStats}>
-                    <Text>24(18) | 4x4, 6x2</Text>
+          <>
+            <Card style={styles.batsmenCard} mode="contained">
+              <Card.Title
+                title="Batting"
+                titleVariant="titleMedium"
+                left={() => <Icon name="cricket" size={24} />}
+                right={() => (
+                  <IconButton
+                    icon="account-group"
+                    onPress={() => setShowTeamA(true)}
+                  />
+                )}
+              />
+              <Card.Content>
+                <View style={styles.playerInfo}>
+                  <Avatar.Icon
+                    size={40}
+                    icon={getPlayerRoleIcon(striker, "A")}
+                  />
+                  <View style={styles.playerDetails}>
+                    <Text variant="bodyLarge" style={styles.striker}>
+                      {striker} ✳️
+                    </Text>
+                    <Text variant="bodyMedium" style={styles.playerRole}>
+                      {
+                        match.playersA.find((p: any) => p.name === striker)
+                          ?.role
+                      }
+                    </Text>
+                    <View style={styles.playerStats}>
+                      <Text>
+                        {strikerStats.runs}({strikerStats.balls}) | 4x
+                        {strikerStats.fours}, 6x{strikerStats.sixes} | SR:{" "}
+                        {strikerStats.strikeRate}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
 
-              <View style={styles.playerInfo}>
-                <Avatar.Icon
-                  size={40}
-                  icon={getPlayerRoleIcon(nonStriker, "A")}
-                />
-                <View style={styles.playerDetails}>
-                  <Text variant="bodyLarge">{nonStriker}</Text>
-                  <Text variant="bodyMedium" style={styles.playerRole}>
-                    {
-                      match.playersA.find((p: any) => p.name === nonStriker)
-                        ?.role
-                    }
-                  </Text>
-                  <View style={styles.playerStats}>
-                    <Text>12(8) | 4x1, 6x1</Text>
+                <View style={styles.playerInfo}>
+                  <Avatar.Icon
+                    size={40}
+                    icon={getPlayerRoleIcon(nonStriker, "A")}
+                  />
+                  <View style={styles.playerDetails}>
+                    <Text variant="bodyLarge">{nonStriker}</Text>
+                    <Text variant="bodyMedium" style={styles.playerRole}>
+                      {
+                        match.playersA.find((p: any) => p.name === nonStriker)
+                          ?.role
+                      }
+                    </Text>
+                    <View style={styles.playerStats}>
+                      <Text>
+                        {nonStrikerStats.runs}({nonStrikerStats.balls}) | 4x
+                        {nonStrikerStats.fours}, 6x{nonStrikerStats.sixes} | SR:{" "}
+                        {nonStrikerStats.strikeRate}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-            </Card.Content>
-          </Card>
+              </Card.Content>
+            </Card>
+
+            {/* Over Progress */}
+            <Card style={styles.overCard} mode="contained">
+              <Card.Title
+                title={`Over ${Math.floor(score.balls / 6) + 1}`}
+                titleVariant="titleMedium"
+                left={() => <Icon name="progress-clock" size={24} />}
+              />
+              <Card.Content>
+                <View style={styles.overBalls}>
+                  {[...Array(6)].map((_, i) => {
+                    const ballIndex = score.balls - (6 - i);
+                    const ballData =
+                      ballIndex >= 0 ? scoreLog[ballIndex] : null;
+
+                    return (
+                      <View
+                        key={i}
+                        style={[
+                          styles.ballMarker,
+                          ballData && {
+                            backgroundColor: getBallColor(ballData),
+                          },
+                          i === score.balls % 6 && styles.currentBall,
+                        ]}
+                      >
+                        {ballData ? (
+                          <Text style={styles.ballText}>
+                            {formatBallResult(ballData)}
+                          </Text>
+                        ) : i === score.balls % 6 ? (
+                          "•"
+                        ) : (
+                          ""
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              </Card.Content>
+            </Card>
+
+            {/* Scoring Controls - Only in Batting Tab */}
+            <Card style={styles.controlsCard} mode="contained">
+              <Card.Title title="Record Ball" titleVariant="titleMedium" />
+              <Card.Content style={styles.controlsContent}>
+                <View style={styles.runsContainer}>
+                  {[0, 1, 2, 3, 4, 6].map((runs) => (
+                    <Button
+                      key={runs}
+                      mode={
+                        currentBall.runs === runs ? "contained" : "outlined"
+                      }
+                      onPress={() => handleRuns(runs)}
+                      style={styles.runButton}
+                      labelStyle={styles.runLabel}
+                      compact
+                    >
+                      {runs}
+                    </Button>
+                  ))}
+                </View>
+
+                <View style={styles.extrasContainer}>
+                  <Text style={styles.sectionLabel}>Extras:</Text>
+                  {["wd", "nb", "b", "lb"].map((extra) => (
+                    <Chip
+                      key={extra}
+                      mode={currentBall.extra === extra ? "flat" : "outlined"}
+                      onPress={() => toggleExtra(extra)}
+                      icon={
+                        extra === "wd"
+                          ? "arrow-expand-horizontal"
+                          : extra === "nb"
+                          ? "alert-circle"
+                          : "run-fast"
+                      }
+                      style={styles.extraChip}
+                    >
+                      {extra === "wd"
+                        ? "Wide"
+                        : extra === "nb"
+                        ? "No Ball"
+                        : extra === "b"
+                        ? "Bye"
+                        : "Leg Bye"}
+                    </Chip>
+                  ))}
+                </View>
+
+                <View style={styles.extrasContainer}>
+                  <Text style={styles.sectionLabel}>Wicket:</Text>
+                  <Menu
+                    visible={showWicketMenu}
+                    onDismiss={() => setShowWicketMenu(false)}
+                    anchor={
+                      <Chip
+                        mode={currentBall.isWicket ? "flat" : "outlined"}
+                        icon="alert-octagon"
+                        onPress={() => setShowWicketMenu(true)}
+                        style={[
+                          styles.extraChip,
+                          currentBall.isWicket && styles.wicketChip,
+                        ]}
+                      >
+                        {currentBall.wicketType || "Wicket"}
+                      </Chip>
+                    }
+                  >
+                    {["Bowled", "Caught", "LBW", "Run Out", "Stumped"].map(
+                      (type) => (
+                        <Menu.Item
+                          key={type}
+                          title={type}
+                          onPress={() => recordWicket(type)}
+                        />
+                      )
+                    )}
+                  </Menu>
+                </View>
+
+                <Button
+                  mode="contained"
+                  onPress={addBall}
+                  style={styles.addBallButton}
+                  labelStyle={styles.addBallLabel}
+                  icon="plus-circle"
+                  disabled={
+                    currentBall.runs === 0 &&
+                    !currentBall.extra &&
+                    !currentBall.isWicket
+                  }
+                >
+                  Add Ball ({6 - (score.balls % 6)} left)
+                </Button>
+              </Card.Content>
+            </Card>
+          </>
         )}
 
         {activeTab === "bowling" && (
@@ -468,7 +810,10 @@ export default function MatchScoringScreen({ route }: Props) {
                     }
                   </Text>
                   <View style={styles.playerStats}>
-                    <Text>3.2-0-28-2 | ER: 8.4</Text>
+                    <Text>
+                      {bowlerStatsCurrent.runs}-{bowlerStatsCurrent.wickets} |
+                      ER: {bowlerStatsCurrent.economy}
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -476,23 +821,34 @@ export default function MatchScoringScreen({ route }: Props) {
               <View style={styles.bowlerStats}>
                 <View style={styles.bowlerStatItem}>
                   <Text style={styles.statLabel}>Overs</Text>
-                  <Text style={styles.headerStatValue}>3.2</Text>
+                  <Text style={styles.headerStatValue}>
+                    {Math.floor(bowlerStatsCurrent.balls / 6)}.
+                    {bowlerStatsCurrent.balls % 6}
+                  </Text>
                 </View>
                 <View style={styles.bowlerStatItem}>
                   <Text style={styles.statLabel}>Maidens</Text>
-                  <Text style={styles.headerStatValue}>0</Text>
+                  <Text style={styles.headerStatValue}>
+                    {bowlerStatsCurrent.maidens}
+                  </Text>
                 </View>
                 <View style={styles.bowlerStatItem}>
                   <Text style={styles.statLabel}>Runs</Text>
-                  <Text style={styles.headerStatValue}>28</Text>
+                  <Text style={styles.headerStatValue}>
+                    {bowlerStatsCurrent.runs}
+                  </Text>
                 </View>
                 <View style={styles.bowlerStatItem}>
                   <Text style={styles.statLabel}>Wickets</Text>
-                  <Text style={styles.headerStatValue}>2</Text>
+                  <Text style={styles.headerStatValue}>
+                    {bowlerStatsCurrent.wickets}
+                  </Text>
                 </View>
                 <View style={styles.bowlerStatItem}>
                   <Text style={styles.statLabel}>ER</Text>
-                  <Text style={styles.headerStatValue}>8.4</Text>
+                  <Text style={styles.headerStatValue}>
+                    {bowlerStatsCurrent.economy}
+                  </Text>
                 </View>
               </View>
             </Card.Content>
@@ -521,11 +877,9 @@ export default function MatchScoringScreen({ route }: Props) {
                 <Text style={styles.statsHeaderText}>SR</Text>
               </View>
 
-              {match.playersA
-                .slice(0, 3)
-                .map((player: Player) =>
-                  renderPlayerScorecard(player, "A", true)
-                )}
+              {match.playersA.map((player: Player) =>
+                renderPlayerScorecard(player, "A", true)
+              )}
 
               <View style={styles.scorecardHeader}>
                 <Text style={styles.scorecardTitle}>Bowling</Text>
@@ -541,180 +895,12 @@ export default function MatchScoringScreen({ route }: Props) {
                 <Text style={styles.statsHeaderText}>ER</Text>
               </View>
 
-              {match.playersB.slice(0, 2).map((player: Player) => (
-                <View key={player.name} style={styles.playerScoreRow}>
-                  <View style={styles.playerInfo}>
-                    <Avatar.Icon
-                      size={36}
-                      icon={getPlayerRoleIcon(player.name, "B")}
-                    />
-                    <View style={styles.playerNameContainer}>
-                      <Text>{player.name}</Text>
-                      <Text style={styles.playerRole}>{player.role}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.statsContainer}>
-                    <Text style={styles.playerStatValue}>3.2</Text>
-                    <Text style={styles.playerStatValue}>0</Text>
-                    <Text style={styles.playerStatValue}>28</Text>
-                    <Text style={styles.playerStatValue}>2</Text>
-                    <Text style={[styles.playerStatValue, styles.strikeRate]}>
-                      8.4
-                    </Text>
-                  </View>
-                </View>
-              ))}
+              {match.playersB.map((player: Player) =>
+                renderBowlerScorecard(player)
+              )}
             </Card.Content>
           </Card>
         )}
-
-        {/* Over Progress */}
-        <Card style={styles.overCard} mode="contained">
-          <Card.Title
-            title={`Over ${Math.floor(score.balls / 6) + 1}`}
-            titleVariant="titleMedium"
-            left={() => <Icon name="progress-clock" size={24} />}
-          />
-          <Card.Content>
-            <View style={styles.overBalls}>
-              {[...Array(6)].map((_, i) => {
-                const ballIndex = score.balls - (6 - i);
-                const ballData = ballIndex >= 0 ? scoreLog[ballIndex] : null;
-
-                return (
-                  <View
-                    key={i}
-                    style={[
-                      styles.ballMarker,
-                      ballData && styles.ballCompleted,
-                      ballData?.runs === 4 && styles.boundary4,
-                      ballData?.runs === 6 && styles.boundary6,
-                      ballData?.isWicket && styles.wicketBall,
-                      i === score.balls % 6 && styles.currentBall,
-                    ]}
-                  >
-                    {ballData ? (
-                      ballData.isWicket ? (
-                        <Icon name="close" size={20} color="#fff" />
-                      ) : (
-                        <Text style={styles.ballText}>
-                          {ballData.runs}
-                          {ballData.extras?.includes("wd") && "wd"}
-                          {ballData.extras?.includes("nb") && "nb"}
-                        </Text>
-                      )
-                    ) : i === score.balls % 6 ? (
-                      "•"
-                    ) : (
-                      ""
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-          </Card.Content>
-        </Card>
-
-        {/* Scoring Controls */}
-        <Card style={styles.controlsCard} mode="contained">
-          <Card.Title title="Record Ball" titleVariant="titleMedium" />
-          <Card.Content style={styles.controlsContent}>
-            <View style={styles.runsContainer}>
-              {[0, 1, 2, 3, 4, 6].map((runs) => (
-                <Button
-                  key={runs}
-                  mode={currentBall.runs === runs ? "contained" : "outlined"}
-                  onPress={() => handleRuns(runs)}
-                  style={styles.runButton}
-                  labelStyle={styles.runLabel}
-                  compact
-                >
-                  {runs}
-                </Button>
-              ))}
-            </View>
-
-            <View style={styles.extrasContainer}>
-              <Text style={styles.sectionLabel}>Extras:</Text>
-              {["wd", "nb", "b", "lb"].map((extra) => (
-                <Chip
-                  key={extra}
-                  mode={
-                    currentBall.extras.includes(extra) ? "flat" : "outlined"
-                  }
-                  onPress={() =>
-                    currentBall.extras.includes(extra)
-                      ? removeExtra(extra)
-                      : addExtra(extra)
-                  }
-                  icon={
-                    extra === "wd"
-                      ? "arrow-expand-horizontal"
-                      : extra === "nb"
-                      ? "alert-circle"
-                      : "run-fast"
-                  }
-                  style={styles.extraChip}
-                >
-                  {extra === "wd"
-                    ? "Wide"
-                    : extra === "nb"
-                    ? "No Ball"
-                    : extra === "b"
-                    ? "Bye"
-                    : "Leg Bye"}
-                </Chip>
-              ))}
-            </View>
-
-            <View style={styles.extrasContainer}>
-              <Text style={styles.sectionLabel}>Wicket:</Text>
-              <Menu
-                visible={showWicketMenu}
-                onDismiss={() => setShowWicketMenu(false)}
-                anchor={
-                  <Chip
-                    mode={currentBall.isWicket ? "flat" : "outlined"}
-                    icon="alert-octagon"
-                    onPress={() => setShowWicketMenu(true)}
-                    style={[
-                      styles.extraChip,
-                      currentBall.isWicket && styles.wicketChip,
-                    ]}
-                  >
-                    {currentBall.wicketType || "Wicket"}
-                  </Chip>
-                }
-              >
-                {["Bowled", "Caught", "LBW", "Run Out", "Stumped"].map(
-                  (type) => (
-                    <Menu.Item
-                      key={type}
-                      title={type}
-                      onPress={() => recordWicket(type)}
-                    />
-                  )
-                )}
-              </Menu>
-            </View>
-
-            <Button
-              mode="contained"
-              onPress={addBall}
-              style={styles.addBallButton}
-              labelStyle={styles.addBallLabel}
-              icon="plus-circle"
-              disabled={
-                currentBall.runs === 0 &&
-                currentBall.extras.length === 0 &&
-                !currentBall.isWicket
-              }
-            >
-              Add Ball ({6 - (score.balls % 6)} left)
-            </Button>
-          </Card.Content>
-        </Card>
 
         {/* Team Modals */}
         <Portal>
@@ -777,30 +963,9 @@ export default function MatchScoringScreen({ route }: Props) {
                   <Text style={styles.modalHeaderText}>ER</Text>
                 </View>
 
-                {match.playersB.map((player: Player) => (
-                  <View key={player.name} style={styles.playerScoreRow}>
-                    <View style={styles.playerInfo}>
-                      <Avatar.Icon
-                        size={36}
-                        icon={getPlayerRoleIcon(player.name, "B")}
-                      />
-                      <View style={styles.playerNameContainer}>
-                        <Text>{player.name}</Text>
-                        <Text style={styles.playerRole}>{player.role}</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.statsContainer}>
-                      <Text style={styles.playerStatValue}>3.2</Text>
-                      <Text style={styles.playerStatValue}>0</Text>
-                      <Text style={styles.playerStatValue}>28</Text>
-                      <Text style={styles.playerStatValue}>2</Text>
-                      <Text style={[styles.playerStatValue, styles.strikeRate]}>
-                        8.4
-                      </Text>
-                    </View>
-                  </View>
-                ))}
+                {match.playersB.map((player: Player) =>
+                  renderBowlerScorecard(player)
+                )}
               </Card.Content>
             </Card>
           </Modal>
@@ -981,21 +1146,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#f8f9fa",
   },
-  ballCompleted: {
-    backgroundColor: "#E0E0E0",
-  },
   currentBall: {
     borderWidth: 2,
     borderColor: "#FF9800",
-  },
-  boundary4: {
-    backgroundColor: "#FFF59D",
-  },
-  boundary6: {
-    backgroundColor: "#81C784",
-  },
-  wicketBall: {
-    backgroundColor: "#EF9A9A",
   },
   ballText: {
     fontWeight: "bold",
