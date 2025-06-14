@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, ScrollView, StyleSheet, Alert } from "react-native";
+import { View, ScrollView, StyleSheet, Alert, Dimensions } from "react-native";
 import {
   Text,
   Button,
@@ -12,6 +12,9 @@ import {
   Chip,
   ProgressBar,
   Avatar,
+  ToggleButton,
+  Portal,
+  Modal,
 } from "react-native-paper";
 import { RouteProp } from "@react-navigation/native";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -81,6 +84,9 @@ export default function MatchScoringScreen({ route }: Props) {
   const [scoreLog, setScoreLog] = useState<Ball[]>([]);
   const [runRate, setRunRate] = useState(0);
   const [partnership, setPartnership] = useState({ runs: 0, balls: 0 });
+  const [showTeamA, setShowTeamA] = useState(false);
+  const [showTeamB, setShowTeamB] = useState(false);
+  const [activeTab, setActiveTab] = useState("batting");
 
   useEffect(() => {
     const loadMatch = async () => {
@@ -238,17 +244,51 @@ export default function MatchScoringScreen({ route }: Props) {
   const ballsBowled = score.overs * 6 + score.balls;
   const overProgress = ballsBowled / totalBalls;
 
+  const renderPlayerScorecard = (player: any, isBatting: boolean) => (
+    <View key={player.name} style={styles.playerScoreRow}>
+      <View style={styles.playerInfo}>
+        <Avatar.Icon size={36} icon={getPlayerRoleIcon(player.name, "A")} />
+        <View style={styles.playerNameContainer}>
+          <Text style={player.name === striker ? styles.striker : {}}>
+            {player.name}
+            {player.name === striker && " ✳️"}
+          </Text>
+          <Text style={styles.playerRole}>{player.role}</Text>
+        </View>
+      </View>
+
+      {isBatting && (
+        <View style={styles.statsContainer}>
+          <Text style={styles.statValue}>{Math.floor(Math.random() * 30)}</Text>
+          <Text style={styles.statValue}>{Math.floor(Math.random() * 20)}</Text>
+          <Text style={styles.statValue}>{Math.floor(Math.random() * 5)}</Text>
+          <Text style={styles.statValue}>{Math.floor(Math.random() * 3)}</Text>
+          <Text style={[styles.statValue, styles.strikeRate]}>
+            {Math.floor(Math.random() * 150 + 50).toFixed(0)}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+
   return (
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Match Header */}
         <Card style={styles.headerCard} mode="contained">
           <Card.Content>
             <View style={styles.headerRow}>
-              <Text variant="titleLarge" style={styles.teamName}>
-                {match.teamA}
-              </Text>
+              <View>
+                <Text variant="titleMedium" style={styles.teamName}>
+                  {match.teamA}
+                </Text>
+                <Text variant="bodySmall" style={styles.innings}>
+                  Batting
+                </Text>
+              </View>
+
               <View style={styles.scoreContainer}>
                 <Text variant="headlineLarge" style={styles.scoreText}>
                   {score.runs}
@@ -258,22 +298,25 @@ export default function MatchScoringScreen({ route }: Props) {
                   ({score.overs}.{score.balls} ov)
                 </Text>
               </View>
-              <Text variant="titleLarge" style={styles.teamName}>
-                {match.teamB}
-              </Text>
+
+              <View style={styles.targetContainer}>
+                <Text variant="titleMedium" style={styles.teamName}>
+                  {match.teamB}
+                </Text>
+                <Text variant="bodySmall" style={styles.innings}>
+                  Bowling
+                </Text>
+              </View>
             </View>
 
             <View style={styles.matchInfo}>
               <Text style={styles.matchTitle}>{match.matchTitle}</Text>
               <Text style={styles.matchLocation}>{match.location}</Text>
-              <Text style={styles.matchDate}>
-                {new Date(match.date).toLocaleDateString()}
-              </Text>
             </View>
 
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Run Rate</Text>
+                <Text style={styles.statLabel}>CRR</Text>
                 <Text style={styles.statValue}>{runRate.toFixed(2)}</Text>
               </View>
               <View style={styles.statItem}>
@@ -302,15 +345,44 @@ export default function MatchScoringScreen({ route }: Props) {
           </Card.Content>
         </Card>
 
-        <View style={styles.cardsRow}>
-          <Card
-            style={[styles.playerCard, styles.batsmenCard]}
-            mode="contained"
+        {/* Tabs */}
+        <View style={styles.tabContainer}>
+          <Button
+            mode={activeTab === "batting" ? "contained" : "outlined"}
+            onPress={() => setActiveTab("batting")}
+            style={styles.tabButton}
           >
+            Batting
+          </Button>
+          <Button
+            mode={activeTab === "bowling" ? "contained" : "outlined"}
+            onPress={() => setActiveTab("bowling")}
+            style={styles.tabButton}
+          >
+            Bowling
+          </Button>
+          <Button
+            mode={activeTab === "scorecard" ? "contained" : "outlined"}
+            onPress={() => setActiveTab("scorecard")}
+            style={styles.tabButton}
+          >
+            Scorecard
+          </Button>
+        </View>
+
+        {/* Batting/Bowling Cards */}
+        {activeTab === "batting" && (
+          <Card style={styles.batsmenCard} mode="contained">
             <Card.Title
               title="Batting"
               titleVariant="titleMedium"
               left={() => <Icon name="cricket" size={24} />}
+              right={() => (
+                <IconButton
+                  icon="account-group"
+                  onPress={() => setShowTeamA(true)}
+                />
+              )}
             />
             <Card.Content>
               <View style={styles.playerInfo}>
@@ -322,6 +394,9 @@ export default function MatchScoringScreen({ route }: Props) {
                   <Text variant="bodyMedium" style={styles.playerRole}>
                     {match.playersA.find((p: any) => p.name === striker)?.role}
                   </Text>
+                  <View style={styles.playerStats}>
+                    <Text>24(18) | 4x4, 6x2</Text>
+                  </View>
                 </View>
               </View>
 
@@ -338,16 +413,27 @@ export default function MatchScoringScreen({ route }: Props) {
                         ?.role
                     }
                   </Text>
+                  <View style={styles.playerStats}>
+                    <Text>12(8) | 4x1, 6x1</Text>
+                  </View>
                 </View>
               </View>
             </Card.Content>
           </Card>
+        )}
 
-          <Card style={[styles.playerCard, styles.bowlerCard]} mode="contained">
+        {activeTab === "bowling" && (
+          <Card style={styles.bowlerCard} mode="contained">
             <Card.Title
               title="Bowling"
               titleVariant="titleMedium"
               left={() => <Icon name="bowl" size={24} />}
+              right={() => (
+                <IconButton
+                  icon="account-group"
+                  onPress={() => setShowTeamB(true)}
+                />
+              )}
             />
             <Card.Content>
               <View style={styles.playerInfo}>
@@ -363,15 +449,110 @@ export default function MatchScoringScreen({ route }: Props) {
                         ?.role
                     }
                   </Text>
+                  <View style={styles.playerStats}>
+                    <Text>3.2-0-28-2 | ER: 8.4</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.bowlerStats}>
+                <View style={styles.bowlerStatItem}>
+                  <Text style={styles.statLabel}>Overs</Text>
+                  <Text style={styles.statValue}>3.2</Text>
+                </View>
+                <View style={styles.bowlerStatItem}>
+                  <Text style={styles.statLabel}>Maidens</Text>
+                  <Text style={styles.statValue}>0</Text>
+                </View>
+                <View style={styles.bowlerStatItem}>
+                  <Text style={styles.statLabel}>Runs</Text>
+                  <Text style={styles.statValue}>28</Text>
+                </View>
+                <View style={styles.bowlerStatItem}>
+                  <Text style={styles.statLabel}>Wickets</Text>
+                  <Text style={styles.statValue}>2</Text>
+                </View>
+                <View style={styles.bowlerStatItem}>
+                  <Text style={styles.statLabel}>ER</Text>
+                  <Text style={styles.statValue}>8.4</Text>
                 </View>
               </View>
             </Card.Content>
           </Card>
-        </View>
+        )}
 
+        {activeTab === "scorecard" && (
+          <Card style={styles.scorecardCard} mode="contained">
+            <Card.Title
+              title="Full Scorecard"
+              titleVariant="titleMedium"
+              left={() => <Icon name="scoreboard" size={24} />}
+            />
+            <Card.Content>
+              <View style={styles.scorecardHeader}>
+                <Text style={styles.scorecardTitle}>Batting</Text>
+                <Text style={styles.scorecardSubtitle}>{match.teamA}</Text>
+              </View>
+
+              <View style={styles.statsHeader}>
+                <Text style={styles.statsHeaderText}>Batsman</Text>
+                <Text style={styles.statsHeaderText}>R</Text>
+                <Text style={styles.statsHeaderText}>B</Text>
+                <Text style={styles.statsHeaderText}>4s</Text>
+                <Text style={styles.statsHeaderText}>6s</Text>
+                <Text style={styles.statsHeaderText}>SR</Text>
+              </View>
+
+              {match.playersA
+                .slice(0, 3)
+                .map((player) => renderPlayerScorecard(player, true))}
+
+              <View style={styles.scorecardHeader}>
+                <Text style={styles.scorecardTitle}>Bowling</Text>
+                <Text style={styles.scorecardSubtitle}>{match.teamB}</Text>
+              </View>
+
+              <View style={styles.statsHeader}>
+                <Text style={styles.statsHeaderText}>Bowler</Text>
+                <Text style={styles.statsHeaderText}>O</Text>
+                <Text style={styles.statsHeaderText}>M</Text>
+                <Text style={styles.statsHeaderText}>R</Text>
+                <Text style={styles.statsHeaderText}>W</Text>
+                <Text style={styles.statsHeaderText}>ER</Text>
+              </View>
+
+              {match.playersB.slice(0, 2).map((player) => (
+                <View key={player.name} style={styles.playerScoreRow}>
+                  <View style={styles.playerInfo}>
+                    <Avatar.Icon
+                      size={36}
+                      icon={getPlayerRoleIcon(player.name, "B")}
+                    />
+                    <View style={styles.playerNameContainer}>
+                      <Text>{player.name}</Text>
+                      <Text style={styles.playerRole}>{player.role}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.statsContainer}>
+                    <Text style={styles.statValue}>3.2</Text>
+                    <Text style={styles.statValue}>0</Text>
+                    <Text style={styles.statValue}>28</Text>
+                    <Text style={styles.statValue}>2</Text>
+                    <Text style={[styles.statValue, styles.strikeRate]}>
+                      8.4
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </Card.Content>
+          </Card>
+        )}
+
+        {/* Over Progress */}
         <Card style={styles.overCard} mode="contained">
           <Card.Title
-            title="Current Over"
+            title={`Over ${Math.floor(score.balls / 6) + 1}`}
             titleVariant="titleMedium"
             left={() => <Icon name="progress-clock" size={24} />}
           />
@@ -415,6 +596,7 @@ export default function MatchScoringScreen({ route }: Props) {
           </Card.Content>
         </Card>
 
+        {/* Scoring Controls */}
         <Card style={styles.controlsCard} mode="contained">
           <Card.Title title="Record Ball" titleVariant="titleMedium" />
           <Card.Content style={styles.controlsContent}>
@@ -514,46 +696,95 @@ export default function MatchScoringScreen({ route }: Props) {
           </Card.Content>
         </Card>
 
-        <Card style={styles.logCard} mode="contained">
-          <Card.Title
-            title="Ball-by-Ball Log"
-            titleVariant="titleMedium"
-            left={() => <Icon name="history" size={24} />}
-          />
-          <Card.Content>
-            <ScrollView style={styles.logContainer}>
-              {scoreLog.map((ball, idx) => (
-                <View key={idx} style={styles.logEntry}>
-                  <Text style={styles.overBall}>
-                    {ball.over}.{ball.ball}
-                  </Text>
-                  <View style={styles.logDetails}>
-                    <Text>
-                      <Text style={ball.runs > 3 ? styles.boundaryText : {}}>
-                        {ball.runs}
-                      </Text>
-                      {ball.extras?.map(
-                        (e) =>
-                          ` (${
-                            e === "wd"
-                              ? "Wide"
-                              : e === "nb"
-                              ? "No Ball"
-                              : e === "b"
-                              ? "Bye"
-                              : "Leg Bye"
-                          })`
-                      )}
-                    </Text>
-                    {ball.isWicket && (
-                      <Icon name="alert-octagon" size={16} color="#ff4444" />
-                    )}
-                  </View>
+        {/* Team Modals */}
+        <Portal>
+          <Modal
+            visible={showTeamA}
+            onDismiss={() => setShowTeamA(false)}
+            contentContainerStyle={styles.modalContent}
+          >
+            <Card style={styles.modalCard}>
+              <Card.Title
+                title={match.teamA}
+                titleVariant="titleLarge"
+                right={() => (
+                  <IconButton
+                    icon="close"
+                    onPress={() => setShowTeamA(false)}
+                  />
+                )}
+              />
+              <Card.Content>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalHeaderText}>Batsman</Text>
+                  <Text style={styles.modalHeaderText}>R</Text>
+                  <Text style={styles.modalHeaderText}>B</Text>
+                  <Text style={styles.modalHeaderText}>4s</Text>
+                  <Text style={styles.modalHeaderText}>6s</Text>
+                  <Text style={styles.modalHeaderText}>SR</Text>
                 </View>
-              ))}
-            </ScrollView>
-          </Card.Content>
-        </Card>
+
+                {match.playersA.map((player) =>
+                  renderPlayerScorecard(player, true)
+                )}
+              </Card.Content>
+            </Card>
+          </Modal>
+
+          <Modal
+            visible={showTeamB}
+            onDismiss={() => setShowTeamB(false)}
+            contentContainerStyle={styles.modalContent}
+          >
+            <Card style={styles.modalCard}>
+              <Card.Title
+                title={match.teamB}
+                titleVariant="titleLarge"
+                right={() => (
+                  <IconButton
+                    icon="close"
+                    onPress={() => setShowTeamB(false)}
+                  />
+                )}
+              />
+              <Card.Content>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalHeaderText}>Bowler</Text>
+                  <Text style={styles.modalHeaderText}>O</Text>
+                  <Text style={styles.modalHeaderText}>M</Text>
+                  <Text style={styles.modalHeaderText}>R</Text>
+                  <Text style={styles.modalHeaderText}>W</Text>
+                  <Text style={styles.modalHeaderText}>ER</Text>
+                </View>
+
+                {match.playersB.map((player) => (
+                  <View key={player.name} style={styles.playerScoreRow}>
+                    <View style={styles.playerInfo}>
+                      <Avatar.Icon
+                        size={36}
+                        icon={getPlayerRoleIcon(player.name, "B")}
+                      />
+                      <View style={styles.playerNameContainer}>
+                        <Text>{player.name}</Text>
+                        <Text style={styles.playerRole}>{player.role}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.statsContainer}>
+                      <Text style={styles.statValue}>3.2</Text>
+                      <Text style={styles.statValue}>0</Text>
+                      <Text style={styles.statValue}>28</Text>
+                      <Text style={styles.statValue}>2</Text>
+                      <Text style={[styles.statValue, styles.strikeRate]}>
+                        8.4
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </Card.Content>
+            </Card>
+          </Modal>
+        </Portal>
       </ScrollView>
     </View>
   );
@@ -571,6 +802,7 @@ const styles = StyleSheet.create({
   headerCard: {
     borderRadius: 16,
     overflow: "hidden",
+    backgroundColor: "#1e3a8a",
   },
   headerRow: {
     flexDirection: "row",
@@ -580,22 +812,37 @@ const styles = StyleSheet.create({
   },
   teamName: {
     fontWeight: "bold",
-    flex: 1,
+    color: "white",
+    textAlign: "center",
+  },
+  innings: {
+    color: "#ddd",
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 4,
   },
   scoreContainer: {
     alignItems: "center",
     marginHorizontal: 16,
   },
+  targetContainer: {
+    alignItems: "flex-end",
+  },
   scoreText: {
     fontWeight: "bold",
     lineHeight: 48,
+    color: "white",
+    fontSize: 36,
   },
   wickets: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "normal",
+    color: "#ccc",
   },
   overs: {
-    opacity: 0.8,
+    opacity: 0.9,
+    color: "white",
+    fontSize: 18,
   },
   matchInfo: {
     alignItems: "center",
@@ -603,70 +850,97 @@ const styles = StyleSheet.create({
   },
   matchTitle: {
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 18,
+    color: "white",
+    marginBottom: 4,
   },
   matchLocation: {
     opacity: 0.8,
-  },
-  matchDate: {
-    opacity: 0.6,
-    fontSize: 12,
+    color: "white",
   },
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginVertical: 12,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 8,
+    padding: 12,
   },
   statItem: {
     alignItems: "center",
+    flex: 1,
   },
   statLabel: {
-    fontSize: 12,
-    opacity: 0.7,
+    fontSize: 14,
+    color: "#ddd",
+    marginBottom: 4,
   },
   statValue: {
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 18,
+    color: "white",
   },
   progressBar: {
     height: 8,
     borderRadius: 4,
     marginTop: 8,
+    backgroundColor: "rgba(255,255,255,0.3)",
   },
   progressLabels: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 4,
   },
-  cardsRow: {
+  tabContainer: {
     flexDirection: "row",
-    gap: 16,
+    justifyContent: "space-between",
+    gap: 8,
   },
-  playerCard: {
+  tabButton: {
     flex: 1,
-    borderRadius: 12,
   },
   batsmenCard: {
+    borderRadius: 12,
     backgroundColor: "#E8F5E9",
   },
   bowlerCard: {
+    borderRadius: 12,
     backgroundColor: "#E3F2FD",
   },
   playerInfo: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   playerDetails: {
     flex: 1,
   },
   striker: {
     fontWeight: "bold",
+    fontSize: 16,
   },
   playerRole: {
     opacity: 0.7,
     fontSize: 14,
+    color: "#555",
+  },
+  playerStats: {
+    marginTop: 4,
+    backgroundColor: "rgba(0,0,0,0.05)",
+    padding: 6,
+    borderRadius: 6,
+  },
+  bowlerStats: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 12,
+    backgroundColor: "rgba(0,0,0,0.05)",
+    padding: 12,
+    borderRadius: 8,
+  },
+  bowlerStatItem: {
+    alignItems: "center",
   },
   overCard: {
     borderRadius: 12,
@@ -685,6 +959,7 @@ const styles = StyleSheet.create({
     borderColor: "#E0E0E0",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#f8f9fa",
   },
   ballCompleted: {
     backgroundColor: "#E0E0E0",
@@ -704,6 +979,7 @@ const styles = StyleSheet.create({
   },
   ballText: {
     fontWeight: "bold",
+    fontSize: 16,
   },
   controlsCard: {
     borderRadius: 12,
@@ -733,6 +1009,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontWeight: "500",
+    fontSize: 16,
   },
   extraChip: {
     marginRight: 4,
@@ -746,31 +1023,81 @@ const styles = StyleSheet.create({
   addBallLabel: {
     fontSize: 16,
   },
-  logCard: {
+  scorecardCard: {
     borderRadius: 12,
-    maxHeight: 200,
   },
-  logContainer: {
-    maxHeight: 150,
+  scorecardHeader: {
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
-  logEntry: {
+  scorecardTitle: {
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+  scorecardSubtitle: {
+    fontSize: 14,
+    color: "#666",
+  },
+  statsHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
+    marginBottom: 8,
   },
-  overBall: {
+  statsHeaderText: {
+    fontWeight: "bold",
+    flex: 1,
+    textAlign: "center",
+  },
+  playerScoreRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  playerNameContainer: {
+    marginLeft: 12,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    flex: 1,
+    maxWidth: "50%",
+  },
+  statValue: {
+    flex: 1,
+    textAlign: "center",
     fontWeight: "500",
   },
-  logDetails: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-  },
-  boundaryText: {
+  strikeRate: {
     fontWeight: "bold",
-    color: "#2E7D32",
+    color: "#1e3a8a",
+  },
+  modalContent: {
+    padding: 20,
+  },
+  modalCard: {
+    borderRadius: 16,
+    maxHeight: Dimensions.get("window").height * 0.8,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    marginBottom: 8,
+  },
+  modalHeaderText: {
+    fontWeight: "bold",
+    flex: 1,
+    textAlign: "center",
   },
   centered: {
     flex: 1,
