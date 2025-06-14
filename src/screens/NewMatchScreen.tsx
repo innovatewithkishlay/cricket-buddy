@@ -244,18 +244,26 @@ export default function NewMatchScreen({ navigation }: Props) {
               <Text style={styles.tossLabel}>Winner:</Text>
               <View style={styles.chipContainer}>
                 <Chip
-                  mode="outlined"
+                  mode={tossWinner === "A" ? "flat" : "outlined"}
                   selected={tossWinner === "A"}
                   onPress={() => setTossWinner("A")}
-                  style={styles.chip}
+                  style={[
+                    styles.chip,
+                    tossWinner === "A" && styles.selectedChip,
+                  ]}
+                  selectedColor={theme.colors.primary}
                 >
                   {teamA || "Team A"}
                 </Chip>
                 <Chip
-                  mode="outlined"
+                  mode={tossWinner === "B" ? "flat" : "outlined"}
                   selected={tossWinner === "B"}
                   onPress={() => setTossWinner("B")}
-                  style={styles.chip}
+                  style={[
+                    styles.chip,
+                    tossWinner === "B" && styles.selectedChip,
+                  ]}
+                  selectedColor={theme.colors.primary}
                 >
                   {teamB || "Team B"}
                 </Chip>
@@ -264,20 +272,28 @@ export default function NewMatchScreen({ navigation }: Props) {
               <Text style={styles.tossLabel}>Decision:</Text>
               <View style={styles.chipContainer}>
                 <Chip
-                  mode="outlined"
+                  mode={tossDecision === "bat" ? "flat" : "outlined"}
                   selected={tossDecision === "bat"}
                   onPress={() => setTossDecision("bat")}
-                  style={styles.chip}
+                  style={[
+                    styles.chip,
+                    tossDecision === "bat" && styles.selectedChip,
+                  ]}
                   icon="cricket"
+                  selectedColor={theme.colors.primary}
                 >
                   Bat
                 </Chip>
                 <Chip
-                  mode="outlined"
+                  mode={tossDecision === "field" ? "flat" : "outlined"}
                   selected={tossDecision === "field"}
                   onPress={() => setTossDecision("field")}
-                  style={styles.chip}
+                  style={[
+                    styles.chip,
+                    tossDecision === "field" && styles.selectedChip,
+                  ]}
                   icon="field"
+                  selectedColor={theme.colors.primary}
                 >
                   Field
                 </Chip>
@@ -469,6 +485,11 @@ const styles = StyleSheet.create({
   chip: {
     marginRight: 8,
     marginBottom: 8,
+    borderWidth: 1,
+  },
+  selectedChip: {
+    backgroundColor: "#E3F2FD",
+    borderColor: "#2196F3",
   },
   playerRow: {
     flexDirection: "row",
