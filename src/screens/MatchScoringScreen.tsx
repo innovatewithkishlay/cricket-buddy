@@ -257,11 +257,19 @@ export default function MatchScoringScreen({ route }: Props) {
 
       {isBatting && (
         <View style={styles.statsContainer}>
-          <Text style={styles.statValue}>{Math.floor(Math.random() * 30)}</Text>
-          <Text style={styles.statValue}>{Math.floor(Math.random() * 20)}</Text>
-          <Text style={styles.statValue}>{Math.floor(Math.random() * 5)}</Text>
-          <Text style={styles.statValue}>{Math.floor(Math.random() * 3)}</Text>
-          <Text style={[styles.statValue, styles.strikeRate]}>
+          <Text style={styles.playerStatValue}>
+            {Math.floor(Math.random() * 30)}
+          </Text>
+          <Text style={styles.playerStatValue}>
+            {Math.floor(Math.random() * 20)}
+          </Text>
+          <Text style={styles.playerStatValue}>
+            {Math.floor(Math.random() * 5)}
+          </Text>
+          <Text style={styles.playerStatValue}>
+            {Math.floor(Math.random() * 3)}
+          </Text>
+          <Text style={[styles.playerStatValue, styles.strikeRate]}>
             {Math.floor(Math.random() * 150 + 50).toFixed(0)}
           </Text>
         </View>
@@ -327,17 +335,17 @@ export default function MatchScoringScreen({ route }: Props) {
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
                 <Text style={styles.statLabel}>CRR</Text>
-                <Text style={styles.statValue}>{runRate.toFixed(2)}</Text>
+                <Text style={styles.headerStatValue}>{runRate.toFixed(2)}</Text>
               </View>
               <View style={styles.statItem}>
                 <Text style={styles.statLabel}>Partnership</Text>
-                <Text style={styles.statValue}>
+                <Text style={styles.headerStatValue}>
                   {partnership.runs} ({partnership.balls})
                 </Text>
               </View>
               <View style={styles.statItem}>
                 <Text style={styles.statLabel}>Extras</Text>
-                <Text style={styles.statValue}>{score.extras}</Text>
+                <Text style={styles.headerStatValue}>{score.extras}</Text>
               </View>
             </View>
 
@@ -468,23 +476,23 @@ export default function MatchScoringScreen({ route }: Props) {
               <View style={styles.bowlerStats}>
                 <View style={styles.bowlerStatItem}>
                   <Text style={styles.statLabel}>Overs</Text>
-                  <Text style={styles.statValue}>3.2</Text>
+                  <Text style={styles.headerStatValue}>3.2</Text>
                 </View>
                 <View style={styles.bowlerStatItem}>
                   <Text style={styles.statLabel}>Maidens</Text>
-                  <Text style={styles.statValue}>0</Text>
+                  <Text style={styles.headerStatValue}>0</Text>
                 </View>
                 <View style={styles.bowlerStatItem}>
                   <Text style={styles.statLabel}>Runs</Text>
-                  <Text style={styles.statValue}>28</Text>
+                  <Text style={styles.headerStatValue}>28</Text>
                 </View>
                 <View style={styles.bowlerStatItem}>
                   <Text style={styles.statLabel}>Wickets</Text>
-                  <Text style={styles.statValue}>2</Text>
+                  <Text style={styles.headerStatValue}>2</Text>
                 </View>
                 <View style={styles.bowlerStatItem}>
                   <Text style={styles.statLabel}>ER</Text>
-                  <Text style={styles.statValue}>8.4</Text>
+                  <Text style={styles.headerStatValue}>8.4</Text>
                 </View>
               </View>
             </Card.Content>
@@ -547,11 +555,11 @@ export default function MatchScoringScreen({ route }: Props) {
                   </View>
 
                   <View style={styles.statsContainer}>
-                    <Text style={styles.statValue}>3.2</Text>
-                    <Text style={styles.statValue}>0</Text>
-                    <Text style={styles.statValue}>28</Text>
-                    <Text style={styles.statValue}>2</Text>
-                    <Text style={[styles.statValue, styles.strikeRate]}>
+                    <Text style={styles.playerStatValue}>3.2</Text>
+                    <Text style={styles.playerStatValue}>0</Text>
+                    <Text style={styles.playerStatValue}>28</Text>
+                    <Text style={styles.playerStatValue}>2</Text>
+                    <Text style={[styles.playerStatValue, styles.strikeRate]}>
                       8.4
                     </Text>
                   </View>
@@ -783,11 +791,11 @@ export default function MatchScoringScreen({ route }: Props) {
                     </View>
 
                     <View style={styles.statsContainer}>
-                      <Text style={styles.statValue}>3.2</Text>
-                      <Text style={styles.statValue}>0</Text>
-                      <Text style={styles.statValue}>28</Text>
-                      <Text style={styles.statValue}>2</Text>
-                      <Text style={[styles.statValue, styles.strikeRate]}>
+                      <Text style={styles.playerStatValue}>3.2</Text>
+                      <Text style={styles.playerStatValue}>0</Text>
+                      <Text style={styles.playerStatValue}>28</Text>
+                      <Text style={styles.playerStatValue}>2</Text>
+                      <Text style={[styles.playerStatValue, styles.strikeRate]}>
                         8.4
                       </Text>
                     </View>
@@ -887,7 +895,7 @@ const styles = StyleSheet.create({
     color: "#ddd",
     marginBottom: 4,
   },
-  statValue: {
+  headerStatValue: {
     fontWeight: "bold",
     fontSize: 18,
     color: "white",
@@ -1082,7 +1090,7 @@ const styles = StyleSheet.create({
     flex: 1,
     maxWidth: "50%",
   },
-  statValue: {
+  playerStatValue: {
     flex: 1,
     textAlign: "center",
     fontWeight: "500",
